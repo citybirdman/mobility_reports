@@ -1,0 +1,18 @@
+include MANIFEST.in
+include requirements.txt
+include *.json
+include *.md
+include *.py
+include *.txt
+recursive-include mobility_reports *.css
+recursive-include mobility_reports *.csv
+recursive-include mobility_reports *.html
+recursive-include mobility_reports *.ico
+recursive-include mobility_reports *.js
+recursive-include mobility_reports *.json
+recursive-include mobility_reports *.md
+recursive-include mobility_reports *.png
+recursive-include mobility_reports *.py
+recursive-include mobility_reports *.svg
+recursive-include mobility_reports *.txt
+recursive-exclude mobility_reports *.pyc
