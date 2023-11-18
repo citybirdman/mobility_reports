@@ -13,11 +13,11 @@
  "modified": "2023-02-08 02:56:16.923502",
  "modified_by": "Administrator",
  "module": "Mobility Reports",
- "name": "",
+ "name": "Custom Trial Balance",
  "owner": "Administrator",
  "prepared_report": 0,
  "ref_doctype": "GL Entry",
- "report_name": "",
+ "report_name": "Custom Trial Balance",
  "report_type": "Script Report",
  "roles": [
   {
