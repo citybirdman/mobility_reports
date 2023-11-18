@@ -2,7 +2,7 @@
 // For license information, please see license.txt
 /* eslint-disable */
 
-frappe.query_reports["Trial Balance - ARA"] = {
+frappe.query_reports["Custom Trial Balance"] = {
 	"filters": [
 
 	]
@@ -14,7 +14,7 @@ frappe.query_reports["Trial Balance - ARA"] = {
 // License: GNU General Public License v3. See license.txt
 
 frappe.require("assets/erpnext/js/financial_statements.js", function() {
-	frappe.query_reports["Trial Balance - ARA"] = {
+	frappe.query_reports["Custom Trial Balance"] = {
 		"filters": [
 			{
 				"fieldname": "company",
@@ -126,5 +126,5 @@ frappe.require("assets/erpnext/js/financial_statements.js", function() {
 		"initial_depth": 3
 	}
 
-	erpnext.utils.add_dimensions('Trial Balance - ARA', 6);
+	erpnext.utils.add_dimensions('Custom Trial Balance', 6);
 });
