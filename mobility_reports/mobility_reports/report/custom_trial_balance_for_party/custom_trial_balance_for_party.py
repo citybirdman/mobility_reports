@@ -15,7 +15,7 @@ def execute(filters=None):
 				row["debit"] = row["debit"] - row["credit"]
 			else:
 				row["credit"] = row["credit"] - row["debit"]
-		modified_data.append(row)
+			modified_data.append(row)
 	else:
 		modified_data = data
 
