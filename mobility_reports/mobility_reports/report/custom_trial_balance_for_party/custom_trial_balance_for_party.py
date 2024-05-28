@@ -2,6 +2,7 @@
 # For license information, please see license.txt
 
 import frappe
+from frappe import _
 from erpnext.accounts.report.trial_balance_for_party.trial_balance_for_party import execute as trial_balance_for_party_source
 from erpnext.accounts.report.trial_balance_for_party.trial_balance_for_party import toggle_debit_credit
 
