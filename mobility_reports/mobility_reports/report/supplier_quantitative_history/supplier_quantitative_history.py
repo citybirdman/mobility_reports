@@ -42,18 +42,6 @@ def get_data(filters):
     shipping_dropbox=shipping_dropbox[~shipping_dropbox['ETD'].isna()]
     shipping_dropbox.rename(columns={'Order No.':'title'},inplace=True)
 
-
-    ssl_url = "https://www.dropbox.com/scl/fi/qg6vaczygt2o572cplm8l/n1-ksa.frappe.cloud._arabian.pem?rlkey=a2gqvzfa997rp4az44z7uftq0&dl=1"
-    response = requests.get(ssl_url)
-
-    cert_path = "n1-ksa.frappe.cloud._arabian.pem"
-    with open(cert_path, "wb") as f:
-        f.write(response.content)
-
-    ssl_args = {"ssl": {"ca": cert_path}}
-    connection_string = f"mysql+pymysql://8c48725a15b2a9c:575f0e3b1e05fdb4f4ae@n1-ksa.frappe.cloud:3306/_61c733e77de10d32"
-    engine = create_engine(connection_string, connect_args=ssl_args)
-
     pruchase=frappe.db.sql(f"""
          SELECT pn.title,DATE_FORMAT(pn.shipping_date, '%%Y') AS date,pni.item_code, item.brand,
             item.ply_rating,item.tire_size,
@@ -86,7 +74,7 @@ def get_data(filters):
            {brand_filter}
         GROUP BY pni.item_code, item.brand, pn.title, date
     """,  as_dict=True)
-    pruchase   = [dict(row) for row in pruchase]
+    pruchase= [dict(row) for row in pruchase]
     pruchase=pd.DataFrame(pruchase)
     
     purchase_order = frappe.db.sql(f"""
@@ -189,7 +177,7 @@ def get_data(filters):
         GROUP BY date, item.brand
         ORDER BY date
                     """,as_dict=True)
-    sle   = [dict(row) for row in sle]
+    sle = [dict(row) for row in sle]
     sle=pd.DataFrame(sle)
 
     # %%
@@ -206,7 +194,7 @@ def get_data(filters):
         sales_pivot=sle.pivot_table(index=['date'],values=['sales_qty'],aggfunc='sum',fill_value=0,observed=False).reset_index()
         sp_pivot=sales_pivot.merge(purchase_pivot,on='date')
 
-    net_amount=pd.read_sql(f"""
+    net_amount=frappe.db.sql(f"""
             SELECT item.brand, DATE_FORMAT(si.posting_date,"%%Y") AS date,
             SUM(item.amount - item.discount_amount_custom) AS net_amount
         FROM `tabSales Invoice Item` item
@@ -285,7 +273,7 @@ def get_data(filters):
         GROUP BY item.brand, date
 
         UNION ALL
-
+        
         SELECT item.brand, DATE_FORMAT(si_dn.billing_date,"%%Y-%%m") AS date,
                SUM(sle.stock_value_difference) * -1 AS stock_value_difference
         FROM `tabStock Ledger Entry` sle
