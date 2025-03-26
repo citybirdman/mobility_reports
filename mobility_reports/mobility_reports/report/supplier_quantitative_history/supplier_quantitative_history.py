@@ -10,9 +10,6 @@ def execute(filters=None):
     return columns, data
 
 def get_columns(data):
-   pass
-
-def get_columns(data):
     # Define static columns
     base_columns = [
         {"fieldname": "date", "label": "Date", "fieldtype": "Data", "width": 120},
@@ -41,8 +38,18 @@ def get_data(filters):
     shipping_dropbox=pd.read_excel('https://www.dropbox.com/scl/fi/p94c8l1nfz6uyeso4szkc/ARABIAN-TIRES-2025-Shipping-Report.xlsx?rlkey=tpjtpmhtywpwaxed99o80oxys&dl=1',header=4,usecols=['Order No.','ETD'])
     shipping_dropbox=shipping_dropbox[~shipping_dropbox['ETD'].isna()]
     shipping_dropbox.rename(columns={'Order No.':'title'},inplace=True)
+    ssl_url = "https://www.dropbox.com/scl/fi/qg6vaczygt2o572cplm8l/n1-ksa.frappe.cloud._arabian.pem?rlkey=a2gqvzfa997rp4az44z7uftq0&dl=1"
+    response = requests.get(ssl_url)
 
-    pruchase=frappe.db.sql(f"""
+    cert_path = "n1-ksa.frappe.cloud._arabian.pem"
+    with open(cert_path, "wb") as f:
+        f.write(response.content)
+
+    ssl_args = {"ssl": {"ca": cert_path}}
+    connection_string = f"mysql+pymysql://8c48725a15b2a9c:575f0e3b1e05fdb4f4ae@n1-ksa.frappe.cloud:3306/_61c733e77de10d32"
+    engine = create_engine(connection_string, connect_args=ssl_args)
+    
+    pruchase=pd.read_sql(f"""
          SELECT pn.title,DATE_FORMAT(pn.shipping_date, '%%Y') AS date,pni.item_code, item.brand,
             item.ply_rating,item.tire_size,
             ROUND(SUM(pni.qty), 0) AS purchasing_qty,
@@ -73,11 +80,13 @@ def get_data(filters):
             AND item.weight_per_unit > 0
            {brand_filter}
         GROUP BY pni.item_code, item.brand, pn.title, date
-    """,  as_dict=True)
-    pruchase= [dict(row) for row in pruchase]
+    """, engine )
+    # pruchase= [dict(row) for row in pruchase]
     pruchase=pd.DataFrame(pruchase)
-    
-    purchase_order = frappe.db.sql(f"""
+    if pruchase.empty :
+        pruchase=pd.DataFrame(columns=['title','date','item_code','brand','ply_rating','tire_size','purchasing_qty','net_amount','weight_qty'])
+        
+    purchase_order = pd.read_sql(f"""
        SELECT min(po.schedule_date) AS date, pod.item_code, item.brand
         FROM `tabPurchase Order` po
         JOIN `tabPurchase Order Item` pod ON po.name = pod.parent
@@ -86,11 +95,14 @@ def get_data(filters):
             AND item.weight_per_unit > 0
             {brand_filter}
         GROUP BY item.brand, pod.item_code
-                """,as_dict=True)
-    purchase_order   = [dict(row) for row in purchase_order]
+                """,engine)
+    # purchase_order   = [dict(row) for row in purchase_order]
     purchase_order=pd.DataFrame(purchase_order)
+    if purchase_order.empty:
+        purchase_order=pd.DataFrame(columns=['date','item_code','brand'])
     
     purchase=pruchase.merge(shipping_dropbox,how='left',on='title').reset_index()
+   
     purchase.ETD=pd.to_datetime(purchase.ETD, format='%Y-%m').dt.strftime('%Y-%m')
     for index,row in purchase.iterrows():
         if row['date'] is None:
@@ -99,11 +111,11 @@ def get_data(filters):
     
     pruchase=pruchase[~pruchase.date.isna()].reset_index(drop=True)
     # %%
-    purchase_order['date'] = pd.to_datetime(purchase_order['date'])
+    purchase_order['date'] = pd.to_datetime(purchase_order['date'],errors='coerce')
 
     # %%
-    last3years = purchase_order[purchase_order['date'] < pd.to_datetime('2025-01-01')]
-    current_year=purchase_order[purchase_order['date'] >= pd.to_datetime('2025-01-01')]
+    last3years = purchase_order[purchase_order['date'] < pd.to_datetime('2025-01-01',errors='coerce')]
+    current_year=purchase_order[purchase_order['date'] >= pd.to_datetime('2025-01-01',errors='coerce')]
 
 
     # %%
@@ -152,7 +164,7 @@ def get_data(filters):
         purchase_1=purchase_1[['date','purchasing_qty','AVG_cost']]
         purchase_pivot=purchase_1.merge(data,on='date').merge(U_skus,on='date').merge(new_sku,how='left',on='date').fillna(0) 
     # %%
-    sle=frappe.db.sql(f"""
+    sle=pd.read_sql(f"""
                      SELECT DATE_FORMAT(sle.posting_date,'%%Y') AS date, item.brand, ROUND(SUM(sle.actual_qty)*-1,0) AS sales_qty 
         FROM `tabStock Ledger Entry` sle
         JOIN `tabItem` item ON sle.item_code = item.name
@@ -176,8 +188,8 @@ def get_data(filters):
            {brand_filter}
         GROUP BY date, item.brand
         ORDER BY date
-                    """,as_dict=True)
-    sle = [dict(row) for row in sle]
+                    """,engine)
+    # sle = [dict(row) for row in sle]
     sle=pd.DataFrame(sle)
 
     # %%
@@ -194,7 +206,7 @@ def get_data(filters):
         sales_pivot=sle.pivot_table(index=['date'],values=['sales_qty'],aggfunc='sum',fill_value=0,observed=False).reset_index()
         sp_pivot=sales_pivot.merge(purchase_pivot,on='date')
 
-    net_amount=frappe.db.sql(f"""
+    net_amount=pd.read_sql(f"""
             SELECT item.brand, DATE_FORMAT(si.posting_date,"%%Y") AS date,
             SUM(item.amount - item.discount_amount_custom) AS net_amount
         FROM `tabSales Invoice Item` item
@@ -229,12 +241,12 @@ def get_data(filters):
             AND si.posting_date >= DATE_FORMAT(CURDATE(), '%%Y-01-01')
             {brand_filter}
         GROUP BY item.brand, date
-            """,as_dict=True)
-    net_amount   = [dict(row) for row in net_amount]
+            """,engine)
+    # net_amount   = [dict(row) for row in net_amount]
     net_amount=pd.DataFrame(net_amount)
     # %%
    
-    cogs=frappe.db.sql(f""" WITH si_item AS (
+    cogs=pd.read_sql(f""" WITH si_item AS (
             SELECT DISTINCT(si_item.delivery_note) AS delivery_note,
                    si.posting_date AS billing_date
             FROM `tabSales Invoice Item` si_item
@@ -285,9 +297,20 @@ def get_data(filters):
             AND si_dn.billing_date >= DATE_FORMAT(CURDATE(), '%%Y-01-01')
             {brand_filter}
         GROUP BY item.brand, date
-            """,as_dict=True)
-    cogs   = [dict(row) for row in cogs]
+            """,engine)
+    # cogs   = [dict(row) for row in cogs]
     cogs=pd.DataFrame(cogs)
+    if "date" not in cogs.columns:
+        cogs["date"] = pd.NaT  # Create an empty date column
+
+    if "date" not in net_amount.columns:
+        net_amount["date"] = pd.NaT
+    if "brand" not in cogs.columns:
+        cogs["brand"] = ""
+
+    if "brand" not in net_amount.columns:
+        net_amount["brand"] = ""
+
     profit_df=cogs.merge(net_amount,how='left',on=['date','brand'])
     
 
