@@ -8,7 +8,7 @@ frappe.query_reports["Supplier Quantitative History"] = {
             "label": "Brand",
             "fieldtype": "Link",
             "options": "Brand", 
-            "reqd": 0
+            "reqd": 1
         },
         
 	]
