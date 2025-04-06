@@ -1,8 +1,8 @@
 import frappe
 import pandas as pd # type: ignore
 import numpy as np # type: ignore
-import requests # type: ignore
-from sqlalchemy import create_engine # type: ignore
+# import requests # type: ignore
+# from sqlalchemy import create_engine # type: ignore
 
 def execute(filters=None):
     data = get_data()
@@ -25,7 +25,7 @@ def get_columns(data):
     target=[]
     sales=[]
     stock=[]
-    months=[]
+    # months=[]
     if data:
         
         excluded_fields = {
@@ -58,12 +58,13 @@ def get_columns(data):
                     ]
                 stock.extend(stock_columns)
             else :
-                months_columns = [
-                    {"fieldname": brand, "label": brand, "fieldtype": "data", "width": 300}         
-                    ]
-                months.extend(months_columns)
+                # months_columns = [
+                #     {"fieldname": brand, "label": brand, "fieldtype": "data", "width": 300}         
+                #     ]
+                # months.extend(months_columns)
+                pass
                 
-    base_columns.extend(months)
+    # base_columns.extend(months)
     base_columns.extend(sales)
     base_columns.extend(target)
     base_columns.extend(stock)
@@ -72,21 +73,21 @@ def get_columns(data):
 
 def get_data():
 
-    ssl_url = "https://www.dropbox.com/scl/fi/qg6vaczygt2o572cplm8l/n1-ksa.frappe.cloud._arabian.pem?rlkey=a2gqvzfa997rp4az44z7uftq0&dl=1"
-    response = requests.get(ssl_url)
+    # ssl_url = "https://www.dropbox.com/scl/fi/qg6vaczygt2o572cplm8l/n1-ksa.frappe.cloud._arabian.pem?rlkey=a2gqvzfa997rp4az44z7uftq0&dl=1"
+    # response = requests.get(ssl_url)
 
-    # Save it as a local file
-    cert_path = "n1-ksa.frappe.cloud._arabian.pem"
-    with open(cert_path, "wb") as f:
-        f.write(response.content)
+    # # Save it as a local file
+    # cert_path = "n1-ksa.frappe.cloud._arabian.pem"
+    # with open(cert_path, "wb") as f:
+    #     f.write(response.content)
+
+    # # %%
+    # ssl_args = {"ssl": {"ca": cert_path}}
+    # connection_string = f"mysql+pymysql://8c48725a15b2a9c:575f0e3b1e05fdb4f4ae@n1-ksa.frappe.cloud:3306/_61c733e77de10d32"
+    # engine = create_engine(connection_string, connect_args=ssl_args)
 
     # %%
-    ssl_args = {"ssl": {"ca": cert_path}}
-    connection_string = f"mysql+pymysql://8c48725a15b2a9c:575f0e3b1e05fdb4f4ae@n1-ksa.frappe.cloud:3306/_61c733e77de10d32"
-    engine = create_engine(connection_string, connect_args=ssl_args)
-
-    # %%
-    item_brand=pd.read_sql("""
+    item_brand=frappe.db.sql("""
     SELECT 
         item.country_of_origin,
         item.tire_size,
@@ -109,17 +110,19 @@ def get_data():
         item.tire_size,
         item.ply_rating,
         w.warehouse_name
-                """,engine)
+                """,as_dict=True)
+    item_brand = [dict(row) for row in item_brand]
 
+    item_brand = pd.DataFrame(item_brand)
+    print(item_brand)
     # %%
-    item_brand
+    item_brand.warehouse_name=item_brand.warehouse_name.astype('str')+'_STOCK'
 
     # %%
     item_brand_df=item_brand.pivot_table(index=['country_of_origin','tire_size','ply_rating'],columns=['warehouse_name'],values='total_qty',aggfunc='sum',fill_value=0)
 
     item_brand_df['TOTAL STOCK'] = item_brand_df.sum(axis=1)
 
-    # %%
     item_brand_df['ply_rating']=item_brand_df.index.map(lambda x:x[2])
     item_brand_df['tire_size']=item_brand_df.index.map(lambda x:x[1])
     item_brand_df['country_of_origin']=item_brand_df.index.map(lambda x:x[0])
@@ -129,7 +132,7 @@ def get_data():
     item_brand_df=item_brand_df[item_brand_df.columns[::-1]]
 
     # %%
-    sales_order=pd.read_sql("""SELECT 
+    sales_order=frappe.db.sql("""SELECT 
         item.country_of_origin,
         item.tire_size,
         item.ply_rating,
@@ -152,10 +155,11 @@ def get_data():
         item.tire_size,
         item.ply_rating,
         date
-    """,engine)
+    """,as_dict=True)
+    sales_order = [dict(row) for row in sales_order]
 
-    # %%
-    sales_order
+    sales_order = pd.DataFrame(sales_order)
+
 
     # %%
     sales_order_df=sales_order.pivot_table(index=['country_of_origin','tire_size','ply_rating'],columns=['date',],values='total_qty',aggfunc='sum',fill_value=0)
@@ -172,9 +176,9 @@ def get_data():
 
     # %%
     sales_order_df=sales_order_df[sales_order_df.columns[::-1]]
-
-    # %%
-    sales_warehouse=pd.read_sql("""SELECT 
+   
+    
+    sales_warehouse=frappe.db.sql("""SELECT 
         item.country_of_origin,
         item.tire_size,
         item.ply_rating,
@@ -201,10 +205,13 @@ def get_data():
         item.ply_rating,
         w.warehouse_name
         
-    """,engine)
+    """,as_dict=True)
+    sales_warehouse = [dict(row) for row in sales_warehouse]
+
+    sales_warehouse = pd.DataFrame(sales_warehouse)
 
     # %%
-    sales_warehouse
+    sales_warehouse.warehouse_name=sales_warehouse.warehouse_name.astype('str')+'_SALES'
 
     # %%
     sales_warehouse_df=sales_warehouse.pivot_table(index=['country_of_origin','tire_size','ply_rating'],columns=['warehouse_name'],values='total_qty',aggfunc='sum',fill_value=0)
@@ -221,8 +228,6 @@ def get_data():
     # %%
     sales_warehouse_df=sales_warehouse_df[sales_warehouse_df.columns[::-1]]
 
-    # %%
-    sales_warehouse_df
 
     # %%
     merged_order_warehouse=sales_order_df.merge(sales_warehouse_df,on=['country_of_origin','tire_size','ply_rating'])
@@ -231,36 +236,20 @@ def get_data():
     item_brand_df_merged=item_brand_df.merge(merged_order_warehouse,on=['country_of_origin','tire_size','ply_rating'])
 
     # %%
-    item_brand_df_merged.columns=item_brand_df_merged.columns.str.replace('_x','_STOCK').str.replace('_y','_SALES')
+    # item_brand_df_merged.columns=item_brand_df_merged.columns.str.replace('_x','_STOCK').str.replace('_y','_SALES')
 
     # %%
     item_brand_df_merged['Months on Hand']=item_brand_df_merged['TOTAL STOCK']/item_brand_df_merged['AVG_Sales']
 
-    # %%
-    # headers=['country_of_origin','tire_size','ply_rating','TOTAL STOCK','AVG_Sales','Actual Sales','مستودع الدمام - ARA_SALES',
-    #        'مستودع الدمام الرئيسي - ARA_SALES', 'مستودع الرياض - ARA_SALES',
-    #        'مستودع الطائف - ARA_SALES', 'مستودع المدينة المنورة - ARA_SALES',
-    #        'مستودع بريدة - ARA_SALES', 'مستودع جيزان  - ARA_SALES',
-    #        'مستودع خميس مشيط - ARA_SALES', 'مستودع سكاكا - ARA_SALES',
-    #        'مستودعات جدة الرئيسية (الخمرة) - ARA_SALES', 'Months on Hand','مستودع الدمام - ARA_STOCK', 'مستودع الدمام الرئيسي - ARA_STOCK',
-    #        'مستودع الرياض - ARA_STOCK', 'مستودع الطائف - ARA_STOCK',
-    #        'مستودع المدينة المنورة - ARA_STOCK', 'مستودع بريدة - ARA_STOCK',
-    #        'مستودع جيزان  - ARA_STOCK', 'مستودع خميس مشيط - ARA_STOCK',
-    #        'مستودع سكاكا - ARA_STOCK',
-    #        'مستودعات جدة الرئيسية (الخمرة) - ARA_STOCK',]
-
-    # %%
-    # item_brand_df_merged=item_brand_df_merged[headers]
-
-    # %%
-    target=pd.read_sql("""
+    target=frappe.db.sql("""
     select w.warehouse_name,st.origin,std.ply_rating,std.tire_size ,std.target_qty from `tabSales Target`st
     join `tabSales Target Detail` std on st.name = std.parent
     join `tabWarehouse` w on st.warehouse=w.name
     where DATE_FORMAT(st.month_date,'%%Y-%%M')= DATE_FORMAT(CURDATE(), '%%Y-%%M') 
-    """,engine)
+    """,as_dict=True)
+    target = [dict(row) for row in target]
 
-    # %%
+    target = pd.DataFrame(target)
     target.warehouse_name=target.warehouse_name.astype('str')+'_TARGET'
     # %%
     target_df=target.pivot_table(index=['origin','tire_size','ply_rating'],columns=['warehouse_name'],values='target_qty',aggfunc='sum',fill_value=0)
