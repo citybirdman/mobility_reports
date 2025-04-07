@@ -1,6 +1,9 @@
 import frappe
 import pandas as pd # type: ignore
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor
+from sqlalchemy import create_engine # type: ignore
+import requests # type: ignore
 
 def execute(filters=None):
     data = get_data(filters)
@@ -41,11 +44,19 @@ def get_data(filters):
         brand = filters["brand"]
     
         brand_filter = f"AND item.brand ='{brand}' " 
-        
-    link=frappe.db.sql(''' select shipping_report_dropbox_shared_uri_path from `tabCompany`''',as_dict=True)
-    link = [dict(row) for row in link]
+    ssl_url = "https://www.dropbox.com/scl/fi/qg6vaczygt2o572cplm8l/n1-ksa.frappe.cloud._arabian.pem?rlkey=a2gqvzfa997rp4az44z7uftq0&dl=1"
+    response = requests.get(ssl_url)
 
-    link = pd.DataFrame(link)
+    cert_path = "n1-ksa.frappe.cloud._arabian.pem"
+    with open(cert_path, "wb") as f:
+        f.write(response.content)
+
+    ssl_args = {"ssl": {"ca": cert_path}}
+    connection_string = f"mysql+pymysql://8c48725a15b2a9c:575f0e3b1e05fdb4f4ae@n1-ksa.frappe.cloud:3306/_61c733e77de10d32"
+    engine = create_engine(connection_string, connect_args=ssl_args)
+    
+    
+    link=pd.read_sql(''' select shipping_report_dropbox_shared_uri_path from `tabCompany`''',engine)
     
     
     shipping_dropbox=pd.read_excel(f'https://www.dropbox.com{link[link.columns[0]][0]}',header=4,usecols=['Order No.','ETD'])
@@ -54,26 +65,15 @@ def get_data(filters):
     
     month_order = ['January', 'February', 'March', 'April', 'May', 'June',
                    'July', 'August', 'September', 'October', 'November', 'December']
-    
-
-    """Order Qty"""
-    order_q=frappe.db.sql(f"""
+    queries=[f"""
     select DATE_FORMAT(po.schedule_date,'%%M')as date,item.brand,sum(item.qty)as qty from `tabPurchase Order Item`as item
     join `tabPurchase Order`as po
     on po.name=item.parent
     where DATE_FORMAT(po.schedule_date,"%%Y")=DATE_FORMAT(CURDATE(),"%%Y")
     {brand_filter}
-    GROUP BY date,item.brand""",as_dict=True)
-    order_q = [dict(row) for row in order_q]
-
-    order_q = pd.DataFrame(order_q)
-    if order_q.empty:
-        order_q=pd.DataFrame({'date':['0'],'qty':[0],'brand':[0],'data':['Order QTY']})
-    else:
-        order_q['data']='Order QTY'
-
-    """Shipping qty"""
-    ship_q=frappe.db.sql(f"""
+    GROUP BY date,item.brand""",
+    
+    f"""
     SELECT 
         pn.title, 
         DATE_FORMAT(pn.shipping_date, '%%Y-%%M') AS date, 
@@ -83,97 +83,41 @@ def get_data(filters):
     JOIN `tabPurchase Invoice` AS pn
     ON pn.name = item.parent  -- Fixed alias issue
     where 1=1 {brand_filter}
-    GROUP BY pn.title, date, item.brand""",as_dict=True)
-    ship_q = [dict(row) for row in ship_q]
-
-    ship_q = pd.DataFrame(ship_q)
+    GROUP BY pn.title, date, item.brand""",
     
-    if ship_q.empty:
-        ship_df=pd.DataFrame({'title':['0'],'date':['0'],'qty':[0],'brand':[0],'data':['Shipping QTY']})
+    f"""
+        select DATE_FORMAT(sle.posting_date,'%%M')as date,item.brand, sum(actual_qty)*-1 as qty from `tabStock Ledger Entry`as sle
+        join `tabItem` item on item.name=sle.item_code
+        where sle.voucher_type in('Sales Invoice','Delivery Note')
+        and sle.is_cancelled=0
+        and item.item_group='Tires'
+        and DATE_FORMAT(sle.posting_date,"%%Y")=DATE_FORMAT(CURDATE(),"%%Y")
+        {brand_filter}
+        GROUP BY date,item.brand """,
         
-    else:
-        ship_df=ship_q.merge(shipping_dropbox,how='left', on='title')
-        ship_df=ship_df[~ship_df.ETD.isna()].reset_index(drop=True)
-        ship_df['date']=pd.to_datetime(ship_df['ETD'],errors='coerce').dt.month_name()
-        ship_df=ship_df[['date','qty','brand']].reset_index(drop=True)
-        ship_df['data']='Shipping QTY'
-
-    """sales qty"""
-    sales_q=frappe.db.sql(f"""
-    select DATE_FORMAT(sle.posting_date,'%%M')as date,item.brand, sum(actual_qty)*-1 as qty from `tabStock Ledger Entry`as sle
-    join `tabItem` item on item.name=sle.item_code
-    where sle.voucher_type in('Sales Invoice','Delivery Note')
-    and sle.is_cancelled=0
-    and item.item_group='Tires'
-    and DATE_FORMAT(sle.posting_date,"%%Y")=DATE_FORMAT(CURDATE(),"%%Y")
-    {brand_filter}
-    GROUP BY date,item.brand """,as_dict=True)
-    sales_q = [dict(row) for row in sales_q]
-
-    sales_q = pd.DataFrame(sales_q)
-  
-    if sales_q.empty:
-        sales_q=pd.DataFrame({'date':['0'],'qty':[0],'brand':[0],'data':['Sales QTY']})
-    else:
-        sales_q['data']='Sales QTY'    
-
-    """inventory qty"""
-    inv_q=frappe.db.sql(f'''
-    select item.brand, sle.posting_date as date, sum(actual_qty) as qty from `tabStock Ledger Entry`as sle
-    join `tabItem` item on item.name=sle.item_code
-    where item.item_group='Tires'
-    and sle.is_cancelled=0
-    {brand_filter}
-    group by item.brand,date
-    order by sle.posting_date,item.brand
-    ''',as_dict=True)
-    inv_q = [dict(row) for row in inv_q]
-
-    inv_q = pd.DataFrame(inv_q)
-    
-    if inv_q.empty:
-        inv_q=pd.DataFrame({'date':['2025-01-01'],'qty':[0],'brand':[0],'data':['Inventory QTY']})
-    else:
-        inv_q['data']='Inventory QTY'
-
-    
-    purchase_order_25=frappe.db.sql(f"""
-    SELECT min(po.schedule_date) AS date,pod.item_code, item.brand
-    FROM `tabPurchase Order` po
-    JOIN `tabPurchase Order Item` pod ON po.name = pod.parent
-    JOIN `tabItem` item ON item.name = pod.item_code
-    WHERE 
-    item.item_group = 'Tires'
-    and item.weight_per_unit>0 
-    {brand_filter}
-    
-    group by item.brand,pod.item_code
-                """,as_dict=True)
-    purchase_order_25 = [dict(row) for row in purchase_order_25]
-
-    purchase_order_25 = pd.DataFrame(purchase_order_25)
-
-    if purchase_order_25.empty:
-        purchase_order_25['date'] = pd.to_datetime('2025-01-01')
-        purchase_order_25['brand']='0'
-
-    purchase_order_25['date'] = pd.to_datetime(purchase_order_25['date'])
-
-    purchase_order_25=purchase_order_25[purchase_order_25['date'] >= pd.to_datetime('2025-01-01')]
-    purchase_order_25.date=pd.to_datetime(purchase_order_25.date).dt.month_name()
-    purchase_order_25=purchase_order_25.sort_values(by=['date'])
-    
-    purchase_order_25['date'] = pd.Categorical(purchase_order_25['date'], categories=month_order, ordered=True)
-    purchase_order_25 = purchase_order_25.sort_values('date')
-
-    purchase_order_25=purchase_order_25.pivot_table(columns= 'date',values='brand',aggfunc='count',observed=False)
-
-    purchase_order_25['data']='NEW_SKUs'
-
-    purchase_order_25.reset_index(drop=True,inplace=True)
-    purchase_order_25["Total"] = purchase_order_25[month_order].sum(axis=1)  
-
-    net_amount_25=frappe.db.sql(f""" SELECT
+        f'''
+        select item.brand, sle.posting_date as date, sum(actual_qty) as qty from `tabStock Ledger Entry`as sle
+        join `tabItem` item on item.name=sle.item_code
+        where item.item_group='Tires'
+        and sle.is_cancelled=0
+        {brand_filter}
+        group by item.brand,date
+        order by sle.posting_date,item.brand
+        ''',
+        f"""
+        SELECT min(po.schedule_date) AS date,pod.item_code, item.brand
+        FROM `tabPurchase Order` po
+        JOIN `tabPurchase Order Item` pod ON po.name = pod.parent
+        JOIN `tabItem` item ON item.name = pod.item_code
+        WHERE 
+        item.item_group = 'Tires'
+        and item.weight_per_unit>0 
+        {brand_filter}
+        
+        group by item.brand,pod.item_code
+                """,
+        
+        f""" SELECT
                 item.brand,
                 DATE_FORMAT(si.posting_date,"%%M")AS date,
                 SUM(item.amount - item.discount_amount_custom) AS net_amount
@@ -203,99 +147,170 @@ def get_data(filters):
             GROUP BY
                 item.brand,
                 date
-    """,as_dict=True)
-    net_amount_25 = [dict(row) for row in net_amount_25]
+    """,
+    
+    f"""WITH
+            si_item AS (
+            SELECT
+                DISTINCT(si_item.delivery_note) AS delivery_note,
+                si.posting_date AS billing_date
+            FROM
+                `tabSales Invoice Item` si_item
+            INNER JOIN
+                `tabSales Invoice` si
+            ON
+                si_item.parent = si.name
+            WHERE
+                si_item.docstatus = 1
+            AND
+                si_item.delivery_note IS NOT NULL
+            AND
+                si_item.qty > 0
+            AND
+                si_item.income_account IN (
+                SELECT
+                    default_income_account
+                FROM
+                    `tabCompany`
+                )
+            AND
+                si.docstatus = 1
+            AND
+                si.is_return = 0
+            AND
+                si.is_debit_note = 0
+        ),
+        si_dn AS (
+            SELECT
+                name AS sle_id,
+                posting_date AS billing_date
+            FROM
+                `tabSales Invoice`
+            WHERE
+                docstatus = 1
+            AND
+                update_stock = 1
+            UNION ALL
+            SELECT
+                dn.name AS sle_id,
+                IF(dn.is_return = 1, dn.posting_date, si_item.billing_date) AS billing_date
+            FROM
+                `tabDelivery Note` dn
+            LEFT JOIN
+                si_item
+            ON
+                dn.name = si_item.delivery_note
+            WHERE
+                dn.docstatus = 1
+        )
+        SELECT
+            item.brand,
+            DATE_FORMAT(si_dn.billing_date,"%%M")as date,
+            SUM(sle.stock_value_difference) * -1 AS stock_value_difference
+        FROM
+            `tabStock Ledger Entry` sle
+        INNER JOIN
+            si_dn
+        ON
+            sle.voucher_no = si_dn.sle_id
+        INNER JOIN
+            `tabItem` item
+        ON
+            sle.item_code = item.name
+        WHERE
+            sle.is_cancelled = 0
+        AND
+            sle.voucher_type IN ('Sales Invoice', 'Delivery Note')
+        AND
+            si_dn.billing_date IS NOT NULL
+        AND
+        si_dn.billing_date>= DATE_FORMAT(CURDATE(), '%%Y-01-01')
+        {brand_filter}
+        GROUP BY
+            item.brand,
+            date
+            """
+            ]
+    
+    def run_query(sql):
+        engine = create_engine(connection_string, connect_args=ssl_args)
+        data=pd.read_sql(sql,engine)
+        return data
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        results= list(executor.map(run_query, queries))
+        
+    """Order Qty"""    
+    order_q=results[0]
+    
+    
+    if order_q.empty:
+        order_q=pd.DataFrame({'date':['0'],'qty':[0],'brand':[0],'data':['Order QTY']})
+    else:
+        order_q['data']='Order QTY'
 
-    net_amount_25 = pd.DataFrame(net_amount_25)
+    """Shipping qty"""
+    ship_q=results[1]
+    
+    if ship_q.empty:
+        ship_df=pd.DataFrame({'title':['0'],'date':['0'],'qty':[0],'brand':[0],'data':['Shipping QTY']})
+        
+    else:
+        ship_df=ship_q.merge(shipping_dropbox,how='left', on='title')
+        ship_df=ship_df[~ship_df.ETD.isna()].reset_index(drop=True)
+        ship_df['date']=pd.to_datetime(ship_df['ETD'],errors='coerce').dt.month_name()
+        ship_df=ship_df[['date','qty','brand']].reset_index(drop=True)
+        ship_df['data']='Shipping QTY'
+
+    """sales qty"""
+    sales_q=results[2]
+    
+  
+    if sales_q.empty:
+        sales_q=pd.DataFrame({'date':['0'],'qty':[0],'brand':[0],'data':['Sales QTY']})
+    else:
+        sales_q['data']='Sales QTY'    
+
+    """inventory qty"""
+    inv_q=results[3]
+    
+    if inv_q.empty:
+        inv_q=pd.DataFrame({'date':['2025-01-01'],'qty':[0],'brand':[0],'data':['Inventory QTY']})
+    else:
+        inv_q['data']='Inventory QTY'
+
+    
+    purchase_order_25=results[4]
+
+    if purchase_order_25.empty:
+        purchase_order_25['date'] = pd.to_datetime('2025-01-01')
+        purchase_order_25['brand']='0'
+
+    purchase_order_25['date'] = pd.to_datetime(purchase_order_25['date'])
+
+    purchase_order_25=purchase_order_25[purchase_order_25['date'] >= pd.to_datetime('2025-01-01')]
+    purchase_order_25.date=pd.to_datetime(purchase_order_25.date).dt.month_name()
+    purchase_order_25=purchase_order_25.sort_values(by=['date'])
+    
+    purchase_order_25['date'] = pd.Categorical(purchase_order_25['date'], categories=month_order, ordered=True)
+    purchase_order_25 = purchase_order_25.sort_values('date')
+
+    purchase_order_25=purchase_order_25.pivot_table(columns= 'date',values='brand',aggfunc='count',observed=False)
+
+    purchase_order_25['data']='NEW SKUs'
+
+    purchase_order_25.reset_index(drop=True,inplace=True)
+    purchase_order_25["Total"] = purchase_order_25[month_order].sum(axis=1)  
+
+    net_amount_25=results[5]
+    
+    
     if net_amount_25.empty:
         net_amount_25=pd.DataFrame({'date':['2025-01-01'],'brand':[None],'net_amount':[0]})
     else:
         pass
     
-    cogs_25=frappe.db.sql(f"""WITH
-    si_item AS (
-        SELECT
-            DISTINCT(si_item.delivery_note) AS delivery_note,
-            si.posting_date AS billing_date
-        FROM
-            `tabSales Invoice Item` si_item
-        INNER JOIN
-            `tabSales Invoice` si
-        ON
-            si_item.parent = si.name
-        WHERE
-            si_item.docstatus = 1
-        AND
-            si_item.delivery_note IS NOT NULL
-        AND
-            si_item.qty > 0
-        AND
-            si_item.income_account IN (
-            SELECT
-                default_income_account
-            FROM
-                `tabCompany`
-            )
-        AND
-            si.docstatus = 1
-        AND
-            si.is_return = 0
-        AND
-            si.is_debit_note = 0
-    ),
-    si_dn AS (
-        SELECT
-            name AS sle_id,
-            posting_date AS billing_date
-        FROM
-            `tabSales Invoice`
-        WHERE
-            docstatus = 1
-        AND
-            update_stock = 1
-        UNION ALL
-        SELECT
-            dn.name AS sle_id,
-            IF(dn.is_return = 1, dn.posting_date, si_item.billing_date) AS billing_date
-        FROM
-            `tabDelivery Note` dn
-        LEFT JOIN
-            si_item
-        ON
-            dn.name = si_item.delivery_note
-        WHERE
-            dn.docstatus = 1
-    )
-    SELECT
-        item.brand,
-        DATE_FORMAT(si_dn.billing_date,"%%M")as date,
-        SUM(sle.stock_value_difference) * -1 AS stock_value_difference
-    FROM
-        `tabStock Ledger Entry` sle
-    INNER JOIN
-        si_dn
-    ON
-        sle.voucher_no = si_dn.sle_id
-    INNER JOIN
-        `tabItem` item
-    ON
-        sle.item_code = item.name
-    WHERE
-        sle.is_cancelled = 0
-    AND
-        sle.voucher_type IN ('Sales Invoice', 'Delivery Note')
-    AND
-        si_dn.billing_date IS NOT NULL
-    AND
-    si_dn.billing_date>= DATE_FORMAT(CURDATE(), '%%Y-01-01')
-    {brand_filter}
-    GROUP BY
-        item.brand,
-        date
-            """,as_dict=True)
-    cogs_25 = [dict(row) for row in cogs_25]
-
-    cogs_25 = pd.DataFrame(cogs_25)
+    cogs_25=results[6]
+    
     
     if cogs_25.empty:
         cogs_25=pd.DataFrame({'date':['2025-01-01'],'brand':[None],'stock_value_difference':[0]})

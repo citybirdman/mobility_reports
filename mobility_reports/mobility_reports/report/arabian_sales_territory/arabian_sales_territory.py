@@ -1,16 +1,9 @@
 import frappe
-import pandas as pd
-import numpy as np
-import requests
-from sqlalchemy import create_engine
+import pandas as pd # type: ignore
+import numpy as np # type: ignore
+import requests # type: ignore
+from sqlalchemy import create_engine # type: ignore
 
-def get_columns(df):
-    """Extract column names from DataFrame."""
-    return df.columns.tolist()
-
-def get_data(df):
-    """Extract data as a list of lists from DataFrame."""
-    return df.values.tolist()
 def execute(filters=None):
     # Download SSL certificate
     ssl_url = "https://www.dropbox.com/scl/fi/qg6vaczygt2o572cplm8l/n1-ksa.frappe.cloud._arabian.pem?rlkey=a2gqvzfa997rp4az44z7uftq0&dl=1"

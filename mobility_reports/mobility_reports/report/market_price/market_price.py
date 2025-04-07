@@ -37,7 +37,7 @@ def get_data(filters):
 		from_date = filters["from_date"]
 		from_date_filter = f" creation >= '{from_date}'"
   
-  
+	
 	production_year_filter='and 1=1'
 	if filters and filters.get("production_year"):
 		from_year = filters["production_year"]

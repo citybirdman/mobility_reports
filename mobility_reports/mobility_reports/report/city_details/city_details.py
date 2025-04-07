@@ -35,7 +35,7 @@ def get_data():
     ssl_args = {"ssl": {"ca": cert_path}}
     connection_string = f"mysql+pymysql://8c48725a15b2a9c:575f0e3b1e05fdb4f4ae@n1-ksa.frappe.cloud:3306/_61c733e77de10d32"
     engine = create_engine(connection_string, connect_args=ssl_args)
-
+	
     sql_stock = """ WITH customer_table AS (
 							SELECT 
 								c.name, 
