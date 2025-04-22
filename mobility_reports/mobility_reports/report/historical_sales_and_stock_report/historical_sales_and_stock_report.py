@@ -96,7 +96,6 @@ def get_data(filters):
 		ORDER BY item.brand
 		""",
 
-		# Second Query - Monthly Sales Data
 		f"""
 		SELECT
 			sle.item_code,
@@ -110,6 +109,7 @@ def get_data(filters):
 			AND sle.is_cancelled = 0
 			AND sle.posting_date BETWEEN %(from_date)s AND %(to_date)s
 		GROUP BY sle.item_code, item.item_name, DATE_FORMAT(sle.posting_date, '%%Y-%%m')
+		
 		"""
 	]
 
