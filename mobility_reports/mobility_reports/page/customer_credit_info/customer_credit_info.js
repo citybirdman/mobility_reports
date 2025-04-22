@@ -1,3 +1,26 @@
+const translations = {
+	"Ageing Info":"معلومات المتأخرات",
+	"Branch":"الفرع",
+	"Age":"العمر",
+	"Sales Invoices": "فواتير المبيعات",
+	"Customer Group":"مجموعة العميل",
+	"Customer Info":"معلومات العميل",
+	"Customer Name":"اسم العميل",
+	"Disabled":"موقوف؟",
+	"Grand Total":"المبلغ الإجمالي",
+	"Internal Credit Limit":"الحد الإئتماني الداخلي",
+	"Legal Credit Limit":"الحد الإئتماني القانوني",
+	"Outstanding Amount":"المبلغ المستحق",
+	"Outstanding":"الرصيد المستحق",
+	"Payment Entries":"قيود السداد",
+	"Payment Terms":"شروط الدفع",
+	"Posting Date":"التاريخ",
+	"Received Amount":"المبلغ المستلم",
+	"Sales Invoice":"فاتورة المبيعات",
+	"Sales Invoices":"فواتير المبيعات",
+	"Sales Person":"مندوب المبيعات",
+	"Unbilled Notes":"أذون غير مفوترة",
+	"Customer":"العميل"};
 frappe.pages['customer-credit-info'].on_page_load = function(wrapper) {
 	let page = frappe.ui.make_app_page({
 		parent: wrapper,
@@ -84,6 +107,13 @@ frappe.pages['customer-credit-info'].on_page_load = function(wrapper) {
                 <div class="col-md-3">${buildTable("Payment Entries", data.payment_entry)}</div>
 			</div>
 		`;
+		if (frappe.boot.lang === "ar") {
+			console.log("good")
+			Object.keys(translations).forEach(english => {
+				const arabic = translations[english];
+				html = html.replaceAll(english, arabic);
+			});
+		}
 		$('#result_tables').html(html);
 	}
 

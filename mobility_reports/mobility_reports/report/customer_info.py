@@ -62,8 +62,8 @@ def data_execute(company, customer):
             c.payment_terms,
             c.sales_person,
             cg.branch,
-            ccl.credit_limit AS internal_credit_limit,
-            ccl.legal_credit_limit
+            format(ccl.credit_limit,0) AS internal_credit_limit,
+            format(ccl.legal_credit_limit,0) AS legal_credit_limit,
         FROM
             `tabCustomer` c
             left join `tabCustomer Group` cg on cg.name = c.customer_group
@@ -75,7 +75,7 @@ def data_execute(company, customer):
         f"""
         SELECT
             posting_date,
-            SUM(received_amount) AS received_amount
+            format(SUM(received_amount),0) AS received_amount
         FROM
             `tabPayment Entry`
         WHERE
@@ -92,7 +92,7 @@ def data_execute(company, customer):
     
     f"""
     SELECT
-        SUM(dn.grand_total) AS grand_total
+        format(SUM(dn.grand_total),0) AS grand_total
     FROM
         `tabDelivery Note` dn
     WHERE
@@ -118,8 +118,8 @@ def data_execute(company, customer):
     SELECT
     posting_date,
     name AS sales_invoice,
-    grand_total,
-    outstanding_amount,
+    format(grand_total,0) AS grand_total,
+    format(outstanding_amount,0) as outstanding_amount ,
     DATEDIFF(CURDATE(), posting_date) AS age
 FROM
     `tabSales Invoice`

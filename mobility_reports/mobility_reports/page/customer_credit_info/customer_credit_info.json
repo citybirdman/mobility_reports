@@ -4,13 +4,20 @@
  "docstatus": 0,
  "doctype": "Page",
  "idx": 0,
- "modified": "2025-04-14 16:37:27.042361",
+ "modified": "2025-04-16 15:21:03.380525",
  "modified_by": "Administrator",
  "module": "Mobility Reports",
  "name": "customer-credit-info",
  "owner": "Administrator",
  "page_name": "customer-credit-info",
- "roles": [],
+ "roles": [
+  {
+   "role": "Accounts Manager"
+  },
+  {
+   "role": "Accounts Manager"
+  }
+ ],
  "script": null,
  "standard": "Yes",
  "style": null,
