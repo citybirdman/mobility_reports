@@ -39,7 +39,7 @@ frappe.pages['customer-credit-info'].on_page_load = function(wrapper) {
 				</div>
 			</div>
 			<div id="result_tables"></div>
-		</div>
+		</div> 
 	`);
 
 	// Create company control
