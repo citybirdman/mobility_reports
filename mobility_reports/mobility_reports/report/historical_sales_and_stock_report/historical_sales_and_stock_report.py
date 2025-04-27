@@ -11,22 +11,22 @@ def execute(filters=None):
 
 def get_columns(data):
 		base_columns = [
-			{"fieldname": "item_code", "label": "Item Code", "fieldtype": "Data", "width": 200},
-			{"fieldname": "item_name", "label": "Item Name", "fieldtype": "Data", "width": 200},
-			{"fieldname": "brand", "label": "Brand", "fieldtype": "Data", "width": 200},
-			{"fieldname": "actual_qty", "label": "Qty", "fieldtype": "Data", "width": 200},
-			{"fieldname": "qty_to_deliver", "label": "Qty To Deliver", "fieldtype": "Data", "width": 200},
-			{"fieldname": "available_qty", "label": "Available Qty", "fieldtype": "Data", "width": 200},
-			{"fieldname": "price_list_rate", "label": "Price List Rate", "fieldtype": "Data", "width": 200},
+			{"fieldname": "item_code", "label": "Item Code", "fieldtype": "Data", "width": 100},
+			{"fieldname": "item_name", "label": "Item Name", "fieldtype": "Data", "width": 300},
+			{"fieldname": "brand", "label": "Brand", "fieldtype": "Data", "width": 120},
+			{"fieldname": "actual_qty", "label": "Qty", "fieldtype": "int", "width": 120},
+			{"fieldname": "qty_to_deliver", "label": "Qty To Deliver", "fieldtype": "int", "width": 120},
+			{"fieldname": "available_qty", "label": "Available Qty", "fieldtype": "int", "width": 120},
+			{"fieldname": "price_list_rate", "label": "Price List Rate", "fieldtype": "float", "width": 120},
 		]
 		if data:
 			# Extract brand names dynamically
-			brands = {key for row in data for key in row.keys() if key not in("item_code", "item_name", "brand", "actual_qty", "qty_to_deliver", "available_qty", "price_list_rate")}
+			fileds = {key for row in data for key in row.keys() if key not in("item_code", "item_name", "brand", "actual_qty", "qty_to_deliver", "available_qty", "price_list_rate")}
 
 			# Append brand-specific columns
 			brand_columns = [
-				{"fieldname": brand, "label": brand, "fieldtype": "int", "width": 150}
-				for brand in brands
+				{"fieldname": filed, "label": f"Sales({filed})", "fieldtype": "int", "width": 150}
+				for filed in fileds
 			]
 			base_columns.extend(brand_columns)
 		return base_columns 
