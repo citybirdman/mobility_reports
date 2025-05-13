@@ -135,8 +135,8 @@ def get_data(filters):
 
 	stock = pd.DataFrame(data_stock)
 	sales = pd.DataFrame(data_sales)
-
-
+	
+	
 	stock=stock.sort_values('modified',ascending=False).drop_duplicates(['item_code', 'item_name', 'brand','actual_qty',], keep='first')
 	merged_df = sales.merge(stock, on=["item_code", "item_name"], how="inner")
 	pivoted_df = merged_df.pivot_table(

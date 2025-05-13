@@ -151,7 +151,7 @@ ORDER BY
         
         return result
 
-
+    
     result=cus_data(queries,customer,ageing_df)
     dic={
         'customer':result[0],
@@ -161,3 +161,23 @@ ORDER BY
     }
     
     return dic
+
+
+@frappe.whitelist()
+def data_execute_customer(company, date):
+    filters = {
+        "company": company,
+        "ageing_based_on": "Posting Date",
+        "range": "30, 45, 60, 90, 105, 120, 150, 180, 210",
+        "party_type": "Customer",
+        "report_date": date
+    }
+    
+    result = frappe.call(
+        "frappe.desk.query_report.run",
+        report_name="Accounts Receivable Summary",
+        filters=filters,
+        ignore_prepared_report=True
+    )
+    
+    return result.get("result", [])
