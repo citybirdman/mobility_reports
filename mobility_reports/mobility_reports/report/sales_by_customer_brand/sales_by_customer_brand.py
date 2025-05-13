@@ -19,31 +19,23 @@ def get_columns(data):
 	fileds = {key for row in data for key in row.keys() if key not in("customer", "customer_name", "brand")}
 	# Add dynamic year columns
 	for filed in fileds:
-		columns.append({"fieldname": filed, "label": f"Qty ({filed})", "fieldtype": "Int", "width": 200})
-
+			columns.append({"fieldname": filed, "label": filed, "fieldtype": "Float", "width": 200})	
 	return columns
 def get_data(filters):
 	from_date = filters.get('from_date')
 	to_date = filters.get('to_date')
 	data = frappe.db.sql('''
-		WITH sales_table AS (
-			SELECT name, customer, customer_name FROM `tabSales Invoice`
-			UNION ALL
-			SELECT name, customer, customer_name FROM `tabDelivery Note`
-		)
-		SELECT 
-			DATE_FORMAT(sle.posting_date, '%%Y-%%m') AS date,
-			st.customer,
-			st.customer_name,
-			i.brand,
-			ROUND(SUM(sle.actual_qty) * -1, 0) AS qty
-		FROM `tabStock Ledger Entry` sle
-		JOIN sales_table st ON sle.voucher_no = st.name
-		JOIN `tabItem` i ON sle.item_code = i.name
-		WHERE sle.voucher_type IN ('Sales Invoice', 'Delivery Note')
-			AND sle.docstatus = 1 
-			AND sle.is_cancelled = 0
-			AND sle.posting_date BETWEEN %(from_date)s AND %(to_date)s
+				SELECT 
+			DATE_FORMAT(si.posting_date, '%%Y-%%m') AS date,
+			si.customer,
+			si.customer_name,
+			sii.brand,
+			ROUND(SUM(sii.qty), 0) AS qty,
+            ROUND(sum(sii.net_amount))as amount
+		FROM `tabSales Invoice`as si
+		JOIN `tabSales Invoice Item` sii ON si.name = sii.parent
+			where si.docstatus = 1 
+			AND si.posting_date BETWEEN %(from_date)s AND %(to_date)s
 		GROUP BY date, customer, customer_name, brand
 	''', {
 		'from_date': from_date,
@@ -55,14 +47,33 @@ def get_data(filters):
 
 	df = pd.DataFrame(data)
 
-	sales_pivot=df.pivot_table(
-		values='qty',
-		columns=['date'],
-		index=['customer','customer_name','brand'],
+	pivot = df.pivot_table(
+		values=['qty', 'amount'],
+		columns='date',
+		index=['customer', 'customer_name', 'brand'],
 		aggfunc='sum',
 		fill_value=0
-	).reset_index()
+	)
 
-	return sales_pivot.to_dict(orient='records')
+	# Step 1: Flatten MultiIndex and format as 'amount(YYYY-MM)' or 'qty(YYYY-MM)'
+	pivot.columns = [f"{metric}({date})" for metric, date in pivot.columns]
+
+	# Step 2: Reset index to bring 'customer', etc., back as columns
+	pivot.reset_index(inplace=True)
+
+	# Step 3: Reorder columns - base fields first
+	base_cols = ['customer', 'customer_name', 'brand']
+
+	# Separate amount and qty columns and sort by date
+	cols = [col for col in pivot.columns if 'amount' in col or 'qty' in col]
+
+	# qty_cols = [col for col in pivot.columns if col.startswith('qty(')]
+
+	ordered_cols = base_cols + cols
+	pivot = pivot[ordered_cols]
+	
+	return pivot.to_dict('records')
+
+	
 
 
