@@ -1,5 +1,5 @@
 {
- "add_total_row": 0,
+ "add_total_row": 1,
  "columns": [],
  "creation": "2025-05-12 16:24:05.153477",
  "disabled": 0,
@@ -10,7 +10,7 @@
  "is_standard": "Yes",
  "letter_head": "Lanatires 2",
  "letterhead": null,
- "modified": "2025-05-12 16:24:05.153477",
+ "modified": "2025-05-13 12:23:07.016498",
  "modified_by": "Administrator",
  "module": "Mobility Reports",
  "name": "Sales By Customer-Brand",
@@ -25,15 +25,6 @@
   },
   {
    "role": "Accounts Manager"
-  },
-  {
-   "role": "Branch User"
-  },
-  {
-   "role": "Operation Manager"
-  },
-  {
-   "role": "Operation User"
   }
  ],
  "timeout": 0
