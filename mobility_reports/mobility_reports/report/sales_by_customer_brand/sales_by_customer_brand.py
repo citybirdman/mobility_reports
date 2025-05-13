@@ -19,7 +19,7 @@ def get_columns(data):
 	fileds = {key for row in data for key in row.keys() if key not in("customer", "customer_name", "brand")}
 	# Add dynamic year columns
 	for filed in fileds:
-		columns.append({"fieldname": filed, "label": f"Qty ({filed})", "fieldtype": "Int", "width": 100})
+		columns.append({"fieldname": filed, "label": f"Qty ({filed})", "fieldtype": "Int", "width": 200})
 
 	return columns
 def get_data(filters):
@@ -43,7 +43,6 @@ def get_data(filters):
 		WHERE sle.voucher_type IN ('Sales Invoice', 'Delivery Note')
 			AND sle.docstatus = 1 
 			AND sle.is_cancelled = 0
-			AND i.item_group = 'Tires'
 			AND sle.posting_date BETWEEN %(from_date)s AND %(to_date)s
 		GROUP BY date, customer, customer_name, brand
 	''', {
