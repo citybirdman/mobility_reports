@@ -11,16 +11,29 @@ def execute(filters=None):
 
 def get_columns(data):
 	columns = [
-		{"fieldname": "customer", "label": "Customer", "fieldtype": "Data", "width": 200},
-		{"fieldname": "customer_name", "label": "Customer Name", "fieldtype": "Data", "width": 200},
-		{"fieldname": "brand", "label": "Brand", "fieldtype": "Data", "width": 200},
+		{"fieldname": "customer", "label": "Customer", "fieldtype": "Data", "width": 150},
+		{"fieldname": "customer_name", "label": "Customer Name", "fieldtype": "Data", "width": 180},
+		{"fieldname": "brand", "label": "Brand", "fieldtype": "Data", "width": 120},
 	]
-	# Dynamically generate columns based on available years in the dataset.
-	fileds = {key for row in data for key in row.keys() if key not in("customer", "customer_name", "brand")}
-	# Add dynamic year columns
-	for filed in fileds:
-			columns.append({"fieldname": filed, "label": filed, "fieldtype": "Float", "width": 200})	
+
+	if data:
+		fieldnames = list(data[0].keys())[3:]  # Skip the first 3 base columns
+		for key in fieldnames:
+			if key.startswith("qty("):
+				fieldtype = "Int"
+			elif key.startswith("amount("):
+				fieldtype = "Float"
+			else:
+				fieldtype = "Data"  
+			columns.append({
+				"fieldname": key,
+				"label": key,
+				"fieldtype": fieldtype,
+				"width": 150
+			})
+
 	return columns
+
 def get_data(filters):
 	from_date = filters.get('from_date')
 	to_date = filters.get('to_date')
@@ -34,7 +47,12 @@ def get_data(filters):
             ROUND(sum(sii.net_amount))as amount
 		FROM `tabSales Invoice`as si
 		JOIN `tabSales Invoice Item` sii ON si.name = sii.parent
-			where si.docstatus = 1 
+			where si.docstatus = 1
+			AND sii.income_account IN (
+					  SELECT default_income_account from `tabCompany`
+					  union all 
+					  select default_sales_return_account from `tabCompany`
+					  )
 			AND si.posting_date BETWEEN %(from_date)s AND %(to_date)s
 		GROUP BY date, customer, customer_name, brand
 	''', {
@@ -55,22 +73,17 @@ def get_data(filters):
 		fill_value=0
 	)
 
-	# Step 1: Flatten MultiIndex and format as 'amount(YYYY-MM)' or 'qty(YYYY-MM)'
-	pivot.columns = [f"{metric}({date})" for metric, date in pivot.columns]
+	months = sorted(pivot.columns.levels[1])
 
-	# Step 2: Reset index to bring 'customer', etc., back as columns
-	pivot.reset_index(inplace=True)
+	ordered_cols = [('qty', m) for m in months] + [('amount', m) for m in months]
+	ordered_cols = [col for pair in zip([('qty', m) for m in months], [('amount', m) for m in months]) for col in pair if col in pivot.columns]
 
-	# Step 3: Reorder columns - base fields first
-	base_cols = ['customer', 'customer_name', 'brand']
-
-	# Separate amount and qty columns and sort by date
-	cols = [col for col in pivot.columns if 'amount' in col or 'qty' in col]
-
-	# qty_cols = [col for col in pivot.columns if col.startswith('qty(')]
-
-	ordered_cols = base_cols + cols
 	pivot = pivot[ordered_cols]
+	pivot.columns = [f"{metric}({month})" for metric, month in pivot.columns]
+
+	pivot.reset_index(inplace=True)
+	pivot = pivot[['customer', 'customer_name', 'brand'] + pivot.columns[3:].tolist()]
+
 	
 	return pivot.to_dict('records')
 
