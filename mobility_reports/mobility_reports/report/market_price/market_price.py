@@ -1,7 +1,6 @@
 import frappe
 import pandas as pd # type: ignore
-from sqlalchemy import create_engine # type: ignore
-import requests # type: ignore
+
 
 def execute(filters=None):
 	data = get_data(filters)

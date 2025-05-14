@@ -1,7 +1,6 @@
 import frappe
 import pandas as pd # type: ignore
-import requests # type: ignore
-from sqlalchemy import create_engine # type: ignore
+
 def execute(filters=None):
 	data = get_data(filters)
 	columns = get_columns(data)
@@ -34,18 +33,8 @@ def get_data(filters):
         brand = filters["brand"]
         brand_filter = f"AND item.brand ='{brand}' " 
     
-    ssl_url = "https://www.dropbox.com/scl/fi/qg6vaczygt2o572cplm8l/n1-ksa.frappe.cloud._arabian.pem?rlkey=a2gqvzfa997rp4az44z7uftq0&dl=1"
-    response = requests.get(ssl_url)
 
-    cert_path = "n1-ksa.frappe.cloud._arabian.pem"
-    with open(cert_path, "wb") as f:
-        f.write(response.content)
-
-    ssl_args = {"ssl": {"ca": cert_path}}
-    connection_string = f"mysql+pymysql://8c48725a15b2a9c:575f0e3b1e05fdb4f4ae@n1-ksa.frappe.cloud:3306/_61c733e77de10d32"
-    engine = create_engine(connection_string, connect_args=ssl_args)
-
-    tire_type_sal=pd.read_sql(f'''select DATE_FORMAT(sle.posting_date, '%%Y') as date,item.brand,item.tire_segment,round(sum(sle.actual_qty)*-1,0)as qty from `tabStock Ledger Entry` as sle
+    tire_type_sal=frappe.db.sql(f'''select DATE_FORMAT(sle.posting_date, '%%Y') as date,item.brand,item.tire_segment,round(sum(sle.actual_qty)*-1,0)as qty from `tabStock Ledger Entry` as sle
                 join `tabItem`as item
                 on item.name=sle.item_code
                 where 
@@ -70,7 +59,8 @@ def get_data(filters):
                 {brand_filter}
                 group by item.brand, date,item.tire_segment
             
-            ''',engine)
+            ''',as_dict=True)
+    tire_type_sal=pd.DataFrame([dict(row) for row in tire_type_sal])
     tire_type_sal_df=tire_type_sal.pivot_table(index='date',columns='tire_segment',values='qty',aggfunc='sum',fill_value=0,observed=False).reset_index()
     return tire_type_sal_df.to_dict(orient='records')
 

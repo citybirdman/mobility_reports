@@ -3,6 +3,7 @@ import pandas as pd # type: ignore
 import requests # type: ignore
 from sqlalchemy import create_engine # type: ignore
 from concurrent.futures import ThreadPoolExecutor
+site = frappe.local.site
 
 def execute(filters=None):
     data = get_data(filters)
@@ -69,22 +70,15 @@ def get_data(filters):
     if filters and filters.get("brand"):
         brand = filters["brand"]
         brand_filter = f"AND item.brand ='{brand}' " 
-    ssl_url = "https://www.dropbox.com/scl/fi/qg6vaczygt2o572cplm8l/n1-ksa.frappe.cloud._arabian.pem?rlkey=a2gqvzfa997rp4az44z7uftq0&dl=1"
-    response = requests.get(ssl_url)
-
-    cert_path = "n1-ksa.frappe.cloud._arabian.pem"
-    with open(cert_path, "wb") as f:
-        f.write(response.content)
-
-    ssl_args = {"ssl": {"ca": cert_path}}
-    connection_string = f"mysql+pymysql://8c48725a15b2a9c:575f0e3b1e05fdb4f4ae@n1-ksa.frappe.cloud:3306/_61c733e77de10d32"
-    engine = create_engine(connection_string, connect_args=ssl_args)
+   
     
-    link=pd.read_sql(''' select shipping_report_dropbox_shared_uri_path from `tabCompany`''',engine)
+    link=frappe.db.sql(''' select shipping_report_dropbox_shared_uri_path from `tabCompany`''',as_dict=True)
+    link=pd.DataFrame([dict(row) for row in link])
 
     shipping_dropbox=pd.read_excel(f'https://www.dropbox.com{link[link.columns[0]][0]}',header=4,usecols=['Order No.','ETD'])
     shipping_dropbox=shipping_dropbox[~shipping_dropbox['ETD'].isna()]
     shipping_dropbox.rename(columns={'Order No.':'title'},inplace=True)
+
     queries=[f"""SELECT pn.title,DATE_FORMAT(pn.shipping_date, '%%Y') AS date,pni.item_code, item.brand,
                 item.ply_rating,item.tire_size,
                 ROUND(SUM(pni.qty), 0) AS purchasing_qty,
@@ -238,20 +232,24 @@ def get_data(filters):
                 AND si_dn.billing_date >= DATE_FORMAT(CURDATE(), '%%Y-01-01')
                 {brand_filter}
             GROUP BY item.brand, date
-                """ ]         
-    def run_query(sql):
-        engine = create_engine(connection_string, connect_args=ssl_args)
-        return pd.read_sql(sql,engine)
-    
-    
-    with ThreadPoolExecutor(max_workers=10) as executor:
+                """ ]     
         
-        results= list(executor.map(run_query, queries))
-    pruchase=results[0]
-    purchase_order = results[1]
-    sle=results[2]
-    net_amount=results[3]
-    cogs=results[4]
+    def run_query(sql):
+        frappe.init(site=site)
+        frappe.connect()  # Create a new connection
+        try:
+            result = frappe.db.sql(sql, as_dict=True)
+            return result
+        finally:
+            frappe.destroy() 
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        futures = [executor.submit(run_query, q) for q in queries]
+        results = [f.result() for f in futures]
+    pruchase=pd.DataFrame([dict(row) for row in results[0]])
+    purchase_order = pd.DataFrame([dict(row) for row in results[1]])
+    sle=pd.DataFrame([dict(row) for row in results[2]])
+    net_amount=pd.DataFrame([dict(row) for row in results[3]])
+    cogs=pd.DataFrame([dict(row) for row in results[4]])
     
 
     if pruchase.empty :

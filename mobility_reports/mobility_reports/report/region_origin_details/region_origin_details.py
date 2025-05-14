@@ -27,14 +27,7 @@ def get_columns(data):
     
     return base_columns
 def get_data():
-    ssl_url = "https://www.dropbox.com/scl/fi/qg6vaczygt2o572cplm8l/n1-ksa.frappe.cloud._arabian.pem?rlkey=a2gqvzfa997rp4az44z7uftq0&dl=1"
-    response = requests.get(ssl_url)
-    cert_path = "n1-ksa.frappe.cloud._arabian.pem"
-    with open(cert_path, "wb") as f:
-        f.write(response.content)
-    ssl_args = {"ssl": {"ca": cert_path}}
-    connection_string = f"mysql+pymysql://8c48725a15b2a9c:575f0e3b1e05fdb4f4ae@n1-ksa.frappe.cloud:3306/_61c733e77de10d32"
-    engine = create_engine(connection_string, connect_args=ssl_args)
+   
 
     sql_stock = """ WITH customer_table AS (
 							SELECT 
@@ -107,7 +100,8 @@ def get_data():
 							item.ply_rating,
 							te.parent_territory"""
 
-    stock_df = pd.read_sql(sql_stock, engine)
+    stock = frappe.db.sql(sql_stock,as_dict=True)
+    stock_df=pd.DataFrame([dict(row) for row in stock])
 
     if stock_df.empty:
         frappe.logger().info("Empty stock_df: No data available.")

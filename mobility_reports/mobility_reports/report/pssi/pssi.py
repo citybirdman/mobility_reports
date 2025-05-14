@@ -4,6 +4,7 @@ from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 from sqlalchemy import create_engine # type: ignore
 import requests # type: ignore
+site = frappe.local.site
 
 def execute(filters=None):
     data = get_data(filters)
@@ -44,20 +45,10 @@ def get_data(filters):
         brand = filters["brand"]
     
         brand_filter = f"AND item.brand ='{brand}' " 
-    ssl_url = "https://www.dropbox.com/scl/fi/qg6vaczygt2o572cplm8l/n1-ksa.frappe.cloud._arabian.pem?rlkey=a2gqvzfa997rp4az44z7uftq0&dl=1"
-    response = requests.get(ssl_url)
-
-    cert_path = "n1-ksa.frappe.cloud._arabian.pem"
-    with open(cert_path, "wb") as f:
-        f.write(response.content)
-
-    ssl_args = {"ssl": {"ca": cert_path}}
-    connection_string = f"mysql+pymysql://8c48725a15b2a9c:575f0e3b1e05fdb4f4ae@n1-ksa.frappe.cloud:3306/_61c733e77de10d32"
-    engine = create_engine(connection_string, connect_args=ssl_args)
+  
     
-    
-    link=pd.read_sql(''' select shipping_report_dropbox_shared_uri_path from `tabCompany`''',engine)
-    
+    link=frappe.db.sql(''' select shipping_report_dropbox_shared_uri_path from `tabCompany`''',as_dict=True)
+    link=pd.DataFrame([dict(row) for row in link])
     
     shipping_dropbox=pd.read_excel(f'https://www.dropbox.com{link[link.columns[0]][0]}',header=4,usecols=['Order No.','ETD'])
     shipping_dropbox=shipping_dropbox[~shipping_dropbox['ETD'].isna()]
@@ -233,14 +224,20 @@ def get_data(filters):
             ]
     
     def run_query(sql):
-        engine = create_engine(connection_string, connect_args=ssl_args)
-        data=pd.read_sql(sql,engine)
-        return data
+        frappe.init(site=site)
+        frappe.connect()  # Create a new connection
+        try:
+            result = frappe.db.sql(sql, as_dict=True)
+            return result
+        finally:
+            frappe.destroy() 
     with ThreadPoolExecutor(max_workers=10) as executor:
-        results= list(executor.map(run_query, queries))
+        futures = [executor.submit(run_query, q) for q in queries]
+        results = [f.result() for f in futures]
         
     """Order Qty"""    
-    order_q=results[0]
+    # data = [dict(row) for row in results[0]]
+    order_q= pd.DataFrame([dict(row) for row in results[0]])
     
     
     if order_q.empty:
@@ -249,7 +246,7 @@ def get_data(filters):
         order_q['data']='Order QTY'
 
     """Shipping qty"""
-    ship_q=results[1]
+    ship_q= pd.DataFrame([dict(row) for row in results[1]])
     
     if ship_q.empty:
         ship_df=pd.DataFrame({'title':['0'],'date':['0'],'qty':[0],'brand':[0],'data':['Shipping QTY']})
@@ -262,7 +259,7 @@ def get_data(filters):
         ship_df['data']='Shipping QTY'
 
     """sales qty"""
-    sales_q=results[2]
+    sales_q= pd.DataFrame([dict(row) for row in results[2]])
     
   
     if sales_q.empty:
@@ -271,7 +268,7 @@ def get_data(filters):
         sales_q['data']='Sales QTY'    
 
     """inventory qty"""
-    inv_q=results[3]
+    inv_q= pd.DataFrame([dict(row) for row in results[3]])
     
     if inv_q.empty:
         inv_q=pd.DataFrame({'date':['2025-01-01'],'qty':[0],'brand':[0],'data':['Inventory QTY']})
@@ -279,7 +276,7 @@ def get_data(filters):
         inv_q['data']='Inventory QTY'
 
     
-    purchase_order_25=results[4]
+    purchase_order_25= pd.DataFrame([dict(row) for row in results[4]])
 
     if purchase_order_25.empty:
         purchase_order_25['date'] = pd.to_datetime('2025-01-01')
@@ -301,7 +298,7 @@ def get_data(filters):
     purchase_order_25.reset_index(drop=True,inplace=True)
     purchase_order_25["Total"] = purchase_order_25[month_order].sum(axis=1)  
 
-    net_amount_25=results[5]
+    net_amount_25= pd.DataFrame([dict(row) for row in results[5]])
     
     
     if net_amount_25.empty:
@@ -309,7 +306,7 @@ def get_data(filters):
     else:
         pass
     
-    cogs_25=results[6]
+    cogs_25= pd.DataFrame([dict(row) for row in results[6]])
     
     
     if cogs_25.empty:
