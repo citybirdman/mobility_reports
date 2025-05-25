@@ -25,15 +25,6 @@
   },
   {
    "role": "Accounts Manager"
-  },
-  {
-   "role": "Branch User"
-  },
-  {
-   "role": "Operation Manager"
-  },
-  {
-   "role": "Operation User"
   }
  ],
  "timeout": 0
