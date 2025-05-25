@@ -342,7 +342,7 @@ def get_data(filters):
 
     profit_df=cogs.merge(net_amount,how='left',on=['date','brand'])
     
-
+    
     if profit_df.empty:
         profit_pivot=pd.DataFrame(columns=['date','profitability'])
         years = pd.date_range("2022-01-01", "2024-12-31", freq="YE").strftime('%Y').tolist()

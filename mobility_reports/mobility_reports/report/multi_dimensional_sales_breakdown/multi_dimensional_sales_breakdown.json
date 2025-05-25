@@ -1,7 +1,7 @@
 {
  "add_total_row": 0,
  "columns": [],
- "creation": "2025-03-05 12:09:03.550003",
+ "creation": "2025-05-25 12:07:00.453002",
  "disabled": 0,
  "docstatus": 0,
  "doctype": "Report",
@@ -10,22 +10,16 @@
  "is_standard": "Yes",
  "letter_head": "Lanatires 2",
  "letterhead": null,
- "modified": "2025-05-15 12:16:04.729595",
+ "modified": "2025-05-25 12:58:37.506415",
  "modified_by": "Administrator",
  "module": "Mobility Reports",
- "name": "test22",
+ "name": "Multi-Dimensional Sales Breakdown",
  "owner": "Administrator",
  "prepared_report": 0,
- "ref_doctype": "Account",
- "report_name": "test22",
+ "ref_doctype": "Sales Invoice",
+ "report_name": "Multi-Dimensional Sales Breakdown",
  "report_type": "Script Report",
  "roles": [
-  {
-   "role": "Auditor"
-  },
-  {
-   "role": "Sales User"
-  },
   {
    "role": "Accounts User"
   },
@@ -33,16 +27,10 @@
    "role": "Accounts Manager"
   },
   {
-   "role": "Purchase User"
-  },
-  {
    "role": "Employee Self Service"
   },
   {
    "role": "Branch User"
-  },
-  {
-   "role": "Procurement Team Leader"
   },
   {
    "role": "Operation Manager"
@@ -52,6 +40,9 @@
   },
   {
    "role": "Sales Person"
+  },
+  {
+   "role": "System Manager"
   }
  ],
  "timeout": 0
