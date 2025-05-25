@@ -4,9 +4,6 @@
 import frappe
 import pandas as pd # type: ignore
 from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor
-from sqlalchemy import create_engine # type: ignore
-import requests 
 now=datetime.now()
 
 
@@ -70,20 +67,10 @@ def get_columns(data, filters):
 
 def get_data(filters):
 
-	ssl_url = "https://www.dropbox.com/scl/fi/1hj515q7rykj0l2urpytn/omg.pem?rlkey=3brhxb9x52v23myeegt85983a&st=31ostnmu&dl=1"
-	response = requests.get(ssl_url)
-
-	cert_path = "n1-ksa.frappe.cloud.omg.pem"
-	with open(cert_path, "wb") as f:
-		f.write(response.content)
-
-	ssl_args = {"ssl": {"ca": cert_path}}
-	connection_string = f"mysql+pymysql://174a179b828f397:f0f036846ffcf44c3def@n1-ksa.frappe.cloud:3306/_99a43d5c723190d4"
-	engine = create_engine(connection_string, connect_args=ssl_args)
 	omg_24=pd.read_csv("https://www.dropbox.com/scl/fi/yvz5bm17177jdu0ok4z3v/OMG-Sales-24-2024-Sales.csv?rlkey=fe05jv6pp86h4ma6aehe6w8os&st=x1cgkd35&dl=1")
 
 	if filters.get('metric') == 'Item (Amount)':
-		data=pd.read_sql(    """ 
+		data=frappe.db.sql(    """ 
 		SELECT 
 			sii.name,
 			si.name AS sales_invoice_id,
@@ -136,78 +123,81 @@ def get_data(filters):
 			si.custom_order_method,
 			si.custom_sales_chanal,
 			si.custom_payment_status
-		""",engine)
-		# omg_25=pd.DataFrame([dict(row) for row in data])
+		""", as_dict=True)
+		omg_25=pd.DataFrame([dict(row) for row in data])
 	else:
-		data=pd.read_sql(    """ 
+		data=frappe.db.sql(    """ 
 		SELECT 
-	sii.name AS sales_invoice_item_id,
-	si.name AS sales_invoice_id,
-	si.customer,
-	c.customer_name,
-	c.custom_location_zone,
-	c.territory,
-	c.custom_source,
-	sii.warehouse,
-	i.name AS item_code,
-	i.item_name,
-	si.posting_date,
-	si.custom_invoice_number,
-	si.custom_shipping_cost,
-	c.custom_status,
-	si.custom_order_method,
-	si.custom_sales_chanal AS custom_Sales_channel,
-	si.custom_payment_status,
-	
-	MAX(sii.conversion_factor) AS conversion_factor,
-	MAX(si.custom_code_amount) AS base_discount_amount,
-	MAX(si.custom_additional_discount_amount1) AS discount_amount,
-	SUM(ABS(sle.actual_qty)) AS qty,
-	MAX(sii.base_rate) AS base_rate,
-	SUM(sii.base_net_amount) AS base_amount,
-	
-	-- Total = base_amount + shipping + VAT
-	(MAX(si.custom_vat) + MAX(si.custom_shipping_cost) + SUM(sii.base_net_amount)) AS amount_after_vat
+			sii.name AS sales_invoice_item_id,
+			si.name AS sales_invoice_id,
+			si.customer,
+			c.customer_name,
+			c.custom_location_zone,
+			c.territory,
+			c.custom_source,
+			sii.warehouse,
+			i.name AS item_code,
+			i.item_name,
+			si.posting_date,
+			si.custom_invoice_number,
+			si.custom_shipping_cost,
+			c.custom_status,
+			si.custom_order_method,
+			si.custom_sales_chanal AS custom_Sales_channel,
+			si.custom_payment_status,
+			
+			MAX(sii.conversion_factor) AS conversion_factor,
+			MAX(si.custom_code_amount) AS base_discount_amount,
+			MAX(si.custom_additional_discount_amount1) AS discount_amount,
+			SUM(ABS(sle.actual_qty)) AS qty,
+			MAX(sii.base_rate) AS base_rate,
+			SUM(sii.base_net_amount) AS base_amount,
+			
+			-- Total = base_amount + shipping + VAT
+			(MAX(si.custom_vat) + MAX(si.custom_shipping_cost) + SUM(sii.base_net_amount)) AS amount_after_vat
 
-FROM 
-	`tabSales Invoice` si
-JOIN 
-	`tabSales Invoice Item` sii ON si.name = sii.parent 
-JOIN 
-	`tabCustomer` c ON si.customer = c.name
-JOIN 
-	`tabItem` i ON i.name = sii.item_code
-JOIN 
-	`tabStock Ledger Entry` sle ON sle.voucher_detail_no = sii.name
+		FROM 
+			`tabSales Invoice` si
+		JOIN 
+			`tabSales Invoice Item` sii ON si.name = sii.parent 
+		JOIN 
+			`tabCustomer` c ON si.customer = c.name
+		JOIN 
+			`tabItem` i ON i.name = sii.item_code
+		JOIN 
+			`tabStock Ledger Entry` sle ON sle.voucher_detail_no = sii.name
 
-WHERE 
-	si.docstatus = 1
-	AND si.status != 'Cancelled'
-	AND sle.is_cancelled = 0
-	AND sle.voucher_type = 'Sales Invoice'
+		WHERE 
+			si.docstatus = 1
+			AND si.status != 'Cancelled'
+			AND sle.is_cancelled = 0
+			AND sle.voucher_type = 'Sales Invoice'
 
-GROUP BY 
-	sii.name,
-	si.name,
-	si.customer,
-	c.customer_name,
-	c.custom_location_zone,
-	c.territory,
-	c.custom_source,
-	sii.warehouse,
-	i.name,
-	i.item_name,
-	si.posting_date,
-	si.custom_invoice_number,
-	si.custom_shipping_cost,
-	c.custom_status,
-	si.custom_order_method,
-	si.custom_sales_chanal,
-	si.custom_payment_status
+		GROUP BY 
+			sii.name,
+			si.name,
+			si.customer,
+			c.customer_name,
+			c.custom_location_zone,
+			c.territory,
+			c.custom_source,
+			sii.warehouse,
+			i.name,
+			i.item_name,
+			si.posting_date,
+			si.custom_invoice_number,
+			si.custom_shipping_cost,
+			c.custom_status,
+			si.custom_order_method,
+			si.custom_sales_chanal,
+			si.custom_payment_status
 
-		""",engine)
-		# omg_25=pd.DataFrame([dict(row) for row in data])
-	df=pd.concat([omg_24, data]).reset_index(drop=True)
+				""", as_dict=True)
+		omg_25=pd.DataFrame([dict(row) for row in data])
+
+
+
+	df=pd.concat([omg_24, omg_25]).reset_index(drop=True)
 	df['posting_date'] = pd.to_datetime(df['posting_date'], format='mixed', dayfirst=True).dt.strftime('%Y-%m-%d')
 
 	df.territory=df.territory.str.strip().str.upper()
@@ -308,7 +298,7 @@ GROUP BY
 			values=f'YTD_{by}',
 			fill_value=0,
 			observed=True).reset_index() 
-		
+
 		df_variance = df_variance.rename(columns={
 		df_variance.columns[-1]: f'YTD ({df_variance.columns[-1]})',
 		df_variance.columns[-2]: f'YTD ({df_variance.columns[-2]})'
