@@ -1,6 +1,5 @@
 import frappe
 import pandas as pd # type: ignore
-import requests # type: ignore
 from sqlalchemy import create_engine # type: ignore
 from concurrent.futures import ThreadPoolExecutor
 site = frappe.local.site
