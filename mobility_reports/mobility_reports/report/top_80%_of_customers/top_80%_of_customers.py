@@ -5,8 +5,6 @@ import frappe
 import pandas as pd  # type: ignore
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
-from sqlalchemy import create_engine # type: ignore
-import requests 
 now=datetime.now()
 site = frappe.local.site
 

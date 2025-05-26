@@ -10,7 +10,7 @@
  "is_standard": "Yes",
  "letter_head": "Lanatires 2",
  "letterhead": null,
- "modified": "2025-05-26 12:05:57.708544",
+ "modified": "2025-05-26 16:24:13.754192",
  "modified_by": "Administrator",
  "module": "Mobility Reports",
  "name": "Top 80% Of Customers",
@@ -25,21 +25,6 @@
   },
   {
    "role": "Accounts Manager"
-  },
-  {
-   "role": "Employee Self Service"
-  },
-  {
-   "role": "Branch User"
-  },
-  {
-   "role": "Operation Manager"
-  },
-  {
-   "role": "Operation User"
-  },
-  {
-   "role": "Sales Person"
   },
   {
    "role": "System Manager"

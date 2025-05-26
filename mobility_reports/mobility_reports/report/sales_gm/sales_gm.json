@@ -10,7 +10,7 @@
  "is_standard": "Yes",
  "letter_head": "Lanatires 2",
  "letterhead": null,
- "modified": "2025-05-25 16:19:20.926283",
+ "modified": "2025-05-26 16:22:58.605751",
  "modified_by": "Administrator",
  "module": "Mobility Reports",
  "name": "Sales GM",
@@ -25,6 +25,9 @@
   },
   {
    "role": "Accounts Manager"
+  },
+  {
+   "role": "Operation User"
   }
  ],
  "timeout": 0
