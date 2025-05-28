@@ -155,7 +155,6 @@ def get_data():
 				"""
 	]
 
-
 	def run_query(sql):
 		frappe.init(site=site)
 		frappe.connect()  # Create a new connection

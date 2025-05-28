@@ -2,9 +2,6 @@ import pandas as pd  # type: ignore
 import frappe
 
 def execute(filters=None):
-		if not filters:
-			filters = {}
-
 		data = get_data(filters)
 		columns = get_columns(data)
 		return columns, data
@@ -146,6 +143,14 @@ def get_data(filters):
 		aggfunc="sum"
 	).fillna(0).reset_index()
 	pivoted_df.columns.name = None
+	priority_cols = ['item_code', 'item_name', 'brand', 'actual_qty', 'qty_to_deliver', 'available_qty', 'price_list_rate']
+
+	month_cols = [col for col in pivoted_df.columns if col not in priority_cols]
+
+	month_cols_sorted = sorted(month_cols, key=lambda x: pd.to_datetime(x, format='%Y-%m'))
+	final_cols = priority_cols + month_cols_sorted
+	pivoted_df=pivoted_df[final_cols]
 	return pivoted_df.to_dict(orient="records")
 
 
+	
