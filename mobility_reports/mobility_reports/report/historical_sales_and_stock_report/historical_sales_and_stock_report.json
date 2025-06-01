@@ -11,7 +11,7 @@
  "json": "{}",
  "letter_head": "Lanatires 2",
  "letterhead": null,
- "modified": "2025-05-27 10:50:14.847082",
+ "modified": "2025-06-01 09:43:06.689195",
  "modified_by": "Administrator",
  "module": "Mobility Reports",
  "name": "Historical Sales and Stock Report",
@@ -22,13 +22,7 @@
  "report_type": "Script Report",
  "roles": [
   {
-   "role": "Stock User"
-  },
-  {
-   "role": "Accounts Manager"
-  },
-  {
-   "role": "Operation User"
+   "role": "System Manager"
   }
  ],
  "timeout": 0
