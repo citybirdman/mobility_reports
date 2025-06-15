@@ -82,7 +82,7 @@ frappe.pages['customer-credit-info'].on_page_load = function(wrapper) {
 		}
 
 		frappe.call({
-			method: "mobility_reports.customer_info.data_execute_customer",
+			method: "mobility_reports.customer_info.data_execute",
 			args: {
 				company: company,
 				customer: customer
