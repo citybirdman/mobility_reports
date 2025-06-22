@@ -3,6 +3,16 @@
 
 frappe.query_reports["Sales GM"] = {
 	"filters": [
+		{
+			"fieldname": "metric",
+			"label": "Metric",
+			"fieldtype": "Select",
+			"options": ['Location Zone','Items'],
+			"fieldtype": "Select",
+			"default": "Items",
+			"reqd": 1
+		}
+		
 
 	]
 };

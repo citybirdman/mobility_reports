@@ -128,7 +128,7 @@ def get_data(filters):
 	else:
 		data=frappe.db.sql(    """ 
 		SELECT 
-			sii.name AS sales_invoice_item_id,
+			sii.name ,
 			si.name AS sales_invoice_id,
 			si.customer,
 			c.customer_name,
