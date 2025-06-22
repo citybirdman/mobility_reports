@@ -71,7 +71,13 @@ def get_columns(data):
 			"fieldtype": "Data",
 			"width": 120
         },
-	
+		{
+			"fieldname": "custom_invoice_number",
+			"label": "Invoice Number",
+			"fieldtype": "Data",
+			"width": 150
+       
+       	},
 		{
 			"fieldname": "qty",
 			"label": "Qty",
@@ -124,7 +130,7 @@ def get_data():
 	df.custom_payment_status=df.custom_payment_status.str.strip().str.title()
 	df['catogory']=df.item_code.str.split('-').str[0].str.strip().str.title()
 	df['item_name'] = df.item_code.str.split('-').str[1].str.strip().str.title()
-	df=df[['catogory','item_name','posting_date','customer_name','custom_location_zone','custom_Sales_channel','territory','custom_status','custom_order_method','qty','base_rate','base_amount','amount_after_vat','custom_shipping_cost']]
-	df=df.groupby(['catogory', 'item_name', 'posting_date', 'customer_name', 'custom_location_zone', 'custom_Sales_channel', 'territory','custom_status','custom_order_method']).sum().reset_index()
+	df=df[['catogory','item_name','posting_date','customer_name','custom_location_zone','custom_Sales_channel','territory','custom_status','custom_order_method','custom_invoice_number','qty','base_rate','base_amount','amount_after_vat','custom_shipping_cost']]
+	df=df.groupby(['catogory', 'item_name', 'posting_date', 'customer_name', 'custom_location_zone', 'custom_Sales_channel', 'territory','custom_status','custom_invoice_number','custom_order_method']).sum().reset_index()
 	
 	return df.to_dict(orient='records')
