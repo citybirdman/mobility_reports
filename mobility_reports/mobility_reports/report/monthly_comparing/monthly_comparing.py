@@ -1,21 +1,7 @@
 import pandas as pd # type: ignore
 from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor
-from sqlalchemy import create_engine # type: ignore
-import requests 
 now=datetime.now()
 import frappe
-
-ssl_url = "https://www.dropbox.com/scl/fi/1hj515q7rykj0l2urpytn/omg.pem?rlkey=3brhxb9x52v23myeegt85983a&st=31ostnmu&dl=1"
-response = requests.get(ssl_url)
-
-cert_path = "n1-ksa.frappe.cloud.omg.pem"
-with open(cert_path, "wb") as f:
-    f.write(response.content)
-
-ssl_args = {"ssl": {"ca": cert_path}}
-connection_string = f"mysql+pymysql://174a179b828f397:f0f036846ffcf44c3def@n1-ksa.frappe.cloud:3306/_99a43d5c723190d4"
-engine = create_engine(connection_string, connect_args=ssl_args)
 
 
 def execute(filters=None):
@@ -68,7 +54,7 @@ def get_data(filters):
     omg_24['catogory']=omg_24.item_code.str.split('-').str[0].str.strip().str.title()
     omg_24['flover'] = omg_24.item_code.str.split('-').str[1].str.strip().str.title()
     
-    omg_25 = pd.read_sql(
+    omg_25 = frappe.db.sql(
     """ 
     SELECT 
         sii.name,
@@ -121,8 +107,9 @@ def get_data(filters):
         si.custom_sales_chanal,
         si.custom_payment_status
     """,
-    engine
-)
+    as_dict=True,
+)	
+    omg_25=pd.DataFrame([dict(row) for row in omg_25])
     df=pd.concat([omg_24, omg_25]).reset_index(drop=True)
     df['posting_date'] = pd.to_datetime(df['posting_date'], format='mixed', dayfirst=True).dt.strftime('%Y-%m-%d')
     df.territory=df.territory.str.strip().str.upper()

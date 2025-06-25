@@ -47,17 +47,8 @@ def get_columns(data):
 
 	return columns 
 def get_data():
-	ssl_url = "https://www.dropbox.com/scl/fi/1hj515q7rykj0l2urpytn/omg.pem?rlkey=3brhxb9x52v23myeegt85983a&st=31ostnmu&dl=1"
-	response = requests.get(ssl_url)
 
-	cert_path = "n1-ksa.frappe.cloud.omg.pem"
-	with open(cert_path, "wb") as f:
-		f.write(response.content)
-
-	ssl_args = {"ssl": {"ca": cert_path}}
-	connection_string = f"mysql+pymysql://174a179b828f397:f0f036846ffcf44c3def@n1-ksa.frappe.cloud:3306/_99a43d5c723190d4"
-	engine = create_engine(connection_string, connect_args=ssl_args)
-	cogs=pd.read_sql("""
+	cogs=frappe.db.sql("""
 				WITH sales_amount AS (
 			select c.custom_location_zone as location_zone,
 				s.posting_date,
@@ -141,8 +132,8 @@ def get_data():
 			posting_date
 
 			
-		""",engine)
-	# cogs= pd.DataFrame([dict(row) for row in cogs])
+		""",as_dict=True)
+	cogs= pd.DataFrame([dict(row) for row in cogs])
 	date_list = pd.DataFrame({'date':pd.date_range(start=f'2025-01-01', end=f'{now.year}-12-31',)})
 
 	cogs['catogory']=cogs.item_code.str.split('-').str[0].str.strip().str.title()
