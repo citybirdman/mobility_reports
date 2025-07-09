@@ -114,9 +114,7 @@ def get_data():
 			LEFT JOIN cogs co 
 				ON sa.item_code = co.item_code 
 				AND sa.posting_date = co.posting_date
-
 			UNION
-
 			SELECT 
 				co.item_code,
 				sa.location_zone,
@@ -129,9 +127,7 @@ def get_data():
 				AND sa.posting_date = co.posting_date
 			) AS result
 			GROUP BY item_code,
-			posting_date
-
-			
+			posting_date			
 		""",as_dict=True)
 	cogs= pd.DataFrame([dict(row) for row in cogs])
 	date_list = pd.DataFrame({'date':pd.date_range(start=f'2025-01-01', end=f'{now.year}-12-31',)})

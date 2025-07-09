@@ -77,7 +77,7 @@ def get_data(filters):
         MAX(sii.conversion_factor) AS conversion_factor,
         MAX(si.custom_code_amount) AS base_discount_amount,
         MAX(si.custom_additional_discount_amount1) AS discount_amount,
-        SUM(sii.qty) AS qty,
+        SUM(CASE WHEN sii.item_name = 'Gum - Mixed Pack' THEN sii.qty * 4 ELSE sii.qty END)qty,
         MAX(sii.base_rate) AS base_rate,
         SUM(sii.base_net_amount) AS base_amount,
         (MAX(si.custom_vat) +max( si.custom_shipping_cost))+ SUM(sii.base_amount) AS amount_after_vat
@@ -86,9 +86,7 @@ def get_data(filters):
         ON si.name = sii.parent 
     join `tabCustomer` c 
         on si.customer = c.name
-    WHERE si.docstatus = 1 
-      AND si.status <> 'Cancelled'
-      and si.docstatus = 1
+    WHERE si.docstatus = 1   and sii.item_name='Gum - Mixed Pack'
     GROUP BY 
         sii.name,
         si.name,
