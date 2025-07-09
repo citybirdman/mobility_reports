@@ -86,7 +86,7 @@ def get_data(filters):
         ON si.name = sii.parent 
     join `tabCustomer` c 
         on si.customer = c.name
-    WHERE si.docstatus = 1   and sii.item_name='Gum - Mixed Pack'
+    WHERE si.docstatus = 1  
     GROUP BY 
         sii.name,
         si.name,
