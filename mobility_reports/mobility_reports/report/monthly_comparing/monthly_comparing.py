@@ -50,7 +50,7 @@ def get_data(filters):
   
     omg_24=pd.read_csv("https://www.dropbox.com/scl/fi/yvz5bm17177jdu0ok4z3v/OMG-Sales-24-2024-Sales.csv?rlkey=fe05jv6pp86h4ma6aehe6w8os&st=x1cgkd35&dl=1")
     
-    omg_24.posting_date=pd.to_datetime(omg_24.posting_date, format='mixed', dayfirst=True)
+    omg_24['posting_date'] = pd.to_datetime(omg_24['posting_date']).dt.strftime('%Y-%m-%d')	
     omg_24['catogory']=omg_24.item_code.str.split('-').str[0].str.strip().str.title()
     omg_24['flover'] = omg_24.item_code.str.split('-').str[1].str.strip().str.title()
     
