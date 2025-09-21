@@ -16,43 +16,16 @@
  "name": "Market Price",
  "owner": "Administrator",
  "prepared_report": 0,
- "ref_doctype": "Account",
+ "ref_doctype": "ItemItem Price",
  "report_name": "Market Price",
  "report_type": "Script Report",
  "roles": [
-  {
-   "role": "Auditor"
-  },
-  {
-   "role": "Sales User"
-  },
-  {
-   "role": "Accounts User"
-  },
-  {
-   "role": "Accounts Manager"
-  },
-  {
-   "role": "Purchase User"
-  },
-  {
-   "role": "Employee Self Service"
-  },
-  {
-   "role": "Branch User"
-  },
-  {
-   "role": "Procurement Team Leader"
-  },
-  {
-   "role": "Operation Manager"
-  },
-  {
-   "role": "Operation User"
-  },
-  {
-   "role": "Sales Person"
-  }
+    {
+     "role": "System Manager"
+    },
+    {
+     "role": "All"
+    }
  ],
  "timeout": 0
 }

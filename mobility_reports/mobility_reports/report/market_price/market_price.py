@@ -15,7 +15,7 @@ def get_column(data):
         {"fieldname": "tire_size", "label": "tire_size", "fieldtype": "Data", "width": 100},
         {"fieldname": "ply_rating", "label": "ply_rating", "fieldtype": "Data", "width": 100},
         {"fieldname": "country_of_origin", "label": "country_of_origin", "fieldtype": "Data", "width": 100},
-        {"fieldname": "Arabian Price", "label": "Arabian Price", "fieldtype": "Data", "width": 100},
+        {"fieldname": "price", "label": "Company Price", "fieldtype": "Data", "width": 100},
     ]
     if data:
         # Extract brand names dynamically
@@ -31,6 +31,7 @@ def get_column(data):
     return base_columns
 
 def get_data(filters):
+    price_list=filters.get("item_price_list")
 	from_date_filter = "1=1"
 	if filters and filters.get("from_date"):
 		from_date = filters["from_date"]
@@ -54,11 +55,11 @@ def get_data(filters):
 			item.ply_rating,
 			ip.production_year,
 			ip.valid_from,
-			ip.price_list_rate as `Arabian Price`
+			ip.price_list_rate as `price`
 			from `tabItem`as item 
 			join `tabItem Price` as ip on item.name = ip.item_code
 			where item_group = "Tires"
-			and ip.price_list='قائمة أسعار الجملة'
+			and ip.price_list='{price_list}'
 			{production_year_filter}
 			{brand_filter}
                        """,as_dict=True)

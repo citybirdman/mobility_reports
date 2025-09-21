@@ -20,6 +20,12 @@ frappe.query_reports["Market Price"] = {
 			"fieldname": "production_year",
 			"label": "Production Year",
 			"fieldtype": "Data"
+		},
+		{
+			"fieldname": "item_price_list",
+			"label": "Price List",
+			"fieldtype": "Link",
+			"reqd": 1,
 		}
 	]
 };
