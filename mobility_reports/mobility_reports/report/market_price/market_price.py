@@ -31,7 +31,7 @@ def get_column(data):
     return base_columns
 
 def get_data(filters):
-    price_list=filters.get("item_price_list")
+    price_list=filters.get("price_list")
 	from_date_filter = "1=1"
 	if filters and filters.get("from_date"):
 		from_date = filters["from_date"]

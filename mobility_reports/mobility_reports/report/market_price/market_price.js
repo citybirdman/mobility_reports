@@ -22,10 +22,19 @@ frappe.query_reports["Market Price"] = {
 			"fieldtype": "Data"
 		},
 		{
-			"fieldname": "item_price_list",
-			"label": "Price List",
+			"fieldname": "price_list",
+			"label": __("Price List"),
 			"fieldtype": "Link",
+			"options": "Price List", // Changed from "Item Price" to "Price List"
 			"reqd": 1,
+			// CRITICAL: Filter to show only SELLING price lists
+			"get_query": function() {
+				return {
+					"filters": {
+						"selling": 1
+					}
+				};
+			}
 		}
 	]
 };
