@@ -14,12 +14,14 @@ def get_column(data):
         {"fieldname": "brand", "label": "brand", "fieldtype": "Data", "width": 100},
         {"fieldname": "tire_size", "label": "tire_size", "fieldtype": "Data", "width": 100},
         {"fieldname": "ply_rating", "label": "ply_rating", "fieldtype": "Data", "width": 100},
+        {"fieldname": "item_name", "label": "Item Name", "fieldtype": "Data", "width": 300},
         {"fieldname": "country_of_origin", "label": "country_of_origin", "fieldtype": "Data", "width": 100},
         {"fieldname": "price_list_rate", "label": "Company Price", "fieldtype": "Data", "width": 100},
+        
     ]
     if data:
         # Extract brand names dynamically
-        brands = {key for row in data for key in row.keys() if key not in('country_of_origin','tire_size','ply_rating','brand','name','Arabian Price')}
+        brands = {key for row in data for key in row.keys() if key not in('country_of_origin','tire_size','ply_rating','brand','name','price_list_rate','item_name')}
 
         # Append brand-specific columns
         brand_columns = [
@@ -55,6 +57,7 @@ def get_data(filters):
             item.country_of_origin,
             item.tire_size, 
             item.ply_rating,
+            item.item_name,
             ip.production_year,
             ip.valid_from,
             ip.price_list_rate 
@@ -86,11 +89,11 @@ def get_data(filters):
  
     market_price=market_price.sort_values(['creation'])
     
-    df=item_price.merge(market_price,how='left',on=['tire_size','ply_rating','country_of_origin']).fillna('0')
+    df=item_price.merge(market_price,how='left',on=['tire_size','ply_rating','country_of_origin','production_year']).fillna('0')
  
     df['distributor/brand']=df['distributor']+' / '+df['market_brand']
  
-    pivot_df=df.pivot_table(index=['name','brand','tire_size','ply_rating','country_of_origin','price_list_rate']\
+    pivot_df=df.pivot_table(index=['name','brand','tire_size','ply_rating','item_name','country_of_origin','price_list_rate']\
                          ,columns=['distributor/brand'],values='price',aggfunc='last',observed=True).reset_index().infer_objects(copy=False).fillna(0)
  
     if '0 / 0' in pivot_df.columns:
