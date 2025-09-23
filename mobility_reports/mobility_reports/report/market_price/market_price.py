@@ -27,6 +27,10 @@ def get_column(data):
             for brand in brands
         ]
 
+
+
+
+
         base_columns.extend(brand_columns)
     return base_columns
 
