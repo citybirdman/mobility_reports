@@ -15,7 +15,7 @@ def get_column(data):
         {"fieldname": "tire_size", "label": "tire_size", "fieldtype": "Data", "width": 100},
         {"fieldname": "ply_rating", "label": "ply_rating", "fieldtype": "Data", "width": 100},
         {"fieldname": "country_of_origin", "label": "country_of_origin", "fieldtype": "Data", "width": 100},
-        {"fieldname": "price", "label": "Company Price", "fieldtype": "Data", "width": 100},
+        {"fieldname": "price_list_rate", "label": "Company Price", "fieldtype": "Data", "width": 100},
     ]
     if data:
         # Extract brand names dynamically
@@ -57,7 +57,7 @@ def get_data(filters):
             item.ply_rating,
             ip.production_year,
             ip.valid_from,
-            ip.price_list_rate as `price`
+            ip.price_list_rate 
             from `tabItem`as item 
             join `tabItem Price` as ip on item.name = ip.item_code
             where item_group = "Tires"
@@ -90,7 +90,7 @@ def get_data(filters):
  
     df['distributor/brand']=df['distributor']+' / '+df['market_brand']
  
-    pivot_df=df.pivot_table(index=['name','brand','tire_size','ply_rating','country_of_origin','Arabian Price']\
+    pivot_df=df.pivot_table(index=['name','brand','tire_size','ply_rating','country_of_origin','price_list_rate']\
                          ,columns=['distributor/brand'],values='price',aggfunc='last',observed=True).reset_index().infer_objects(copy=False).fillna(0)
  
     if '0 / 0' in pivot_df.columns:
