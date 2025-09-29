@@ -39,17 +39,19 @@ def get_data(filters):
         from_date = filters["from_date"]
         from_date_filter = f" creation >= '{from_date}'"
    
-   
-    
-    
+      
+      
+      
     production_year_filter='and 1=1'
     if filters and filters.get("production_year"):
         from_year = filters["production_year"]
         production_year_filter=f" and production_year='{from_year}'"
     brand_filter='and 1=1'
+    
     if filters and filters.get("brand"):
         from_brand = filters["brand"]
         brand_filter=f" and item.brand='{from_brand}'"
+     #SSSSSSS
      
     item_price=frappe.db.sql(f"""
             select item.name, item.item_name,
