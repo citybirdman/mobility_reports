@@ -52,7 +52,7 @@ def get_data(filters):
         from_brand = filters["brand"]
         brand_filter=f" and item.brand='{from_brand}'"
      #SSSSSSS
-     
+     ##ssss
     item_price=frappe.db.sql(f"""
             select item.name, item.item_name,
             item.brand,
