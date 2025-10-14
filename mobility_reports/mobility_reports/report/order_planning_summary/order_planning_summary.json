@@ -1,7 +1,8 @@
 {
- "add_total_row": 0,
+ "add_total_row": 1,
+ "add_translate_data": 0,
  "columns": [],
- "creation": "2025-02-24 14:40:32.029423",
+ "creation": "2025-10-14 11:02:15.355817",
  "disabled": 0,
  "docstatus": 0,
  "doctype": "Report",
@@ -10,15 +11,19 @@
  "is_standard": "Yes",
  "letter_head": "Lanatires 2",
  "letterhead": null,
- "modified": "2025-04-06 17:24:51.966867",
+ "modified": "2025-10-14 11:02:20.783248",
  "modified_by": "Administrator",
  "module": "Mobility Reports",
- "name": "target_report",
+ "name": "Order Planning Summary",
  "owner": "Administrator",
  "prepared_report": 0,
- "ref_doctype": "Account",
- "report_name": "target_report",
+ "ref_doctype": "Stock Ledger Entry",
+ "report_name": "Order Planning Summary",
  "report_type": "Script Report",
- "roles": [],
+ "roles": [
+  {
+   "role": "System Manager"
+  }
+ ],
  "timeout": 0
 }

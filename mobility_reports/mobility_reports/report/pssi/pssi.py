@@ -2,8 +2,6 @@ import frappe
 import pandas as pd # type: ignore
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
-from sqlalchemy import create_engine # type: ignore
-import requests # type: ignore
 site = frappe.local.site
 
 def execute(filters=None):
