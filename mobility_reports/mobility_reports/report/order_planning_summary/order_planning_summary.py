@@ -31,7 +31,6 @@ def get_columns(data):
     if not data:
         return base_columns
 
-    # detect dynamic month columns
     all_keys = {key for row in data for key in row.keys()}
     dynamic_keys = [
         k for k in all_keys 
@@ -39,7 +38,6 @@ def get_columns(data):
                      "tire_type", "tire_segment", "stock", "cy_qty", "shipped", "pending", "price")
     ]
 
-    # ensure month order follows same as global months list
     ordered_dynamic_keys = [m for m in months if m in dynamic_keys]
 
     month_columns = [
@@ -106,7 +104,7 @@ def get_data(filters):
         # sales
         f"""SELECT 
                 i.name AS item_code,
-                DATE_FORMAT(sle.posting_date, '%%Y-%%M') AS date,
+                DATE_FORMAT(sle.posting_date, '%Y-%M') AS date,
                 SUM(NULLIF(sle.actual_qty,0)*-1) AS qty
             FROM `tabStock Ledger Entry` sle 
             LEFT JOIN `tabItem` i ON i.name = sle.item_code 
@@ -181,7 +179,6 @@ def get_data(filters):
         """
     ]
 
-    # ✅ Helper: ensure non-empty DataFrame
     def safe_df(result, columns, key="item_code"):
         df = pd.DataFrame([dict(row) for row in result])
         if df.empty:
@@ -189,7 +186,6 @@ def get_data(filters):
             df[key] = "EMPTY"
         return df
 
-    # ✅ Thread-safe query runner
     def run_query(sql):
         frappe.init(site=site)
         frappe.connect()
@@ -198,20 +194,15 @@ def get_data(filters):
         finally:
             frappe.destroy()
 
-    # ✅ Parallel query execution
     with ThreadPoolExecutor(max_workers=10) as executor:
         results = list(executor.map(run_query, queries))
 
-    # ✅ Apply safe_df to all results
     items   = safe_df(results[0], ["item_code","item_name","brand","country_of_origin","tire_type","tire_segment","stock","cy_qty","price"])
     sales   = safe_df(results[1], ["item_code","date","qty"])
     pending = safe_df(results[2], ["item_code","pending"])
     shipped = safe_df(results[3], ["item_code","shipped"])
-
-    # ✅ Handle sales pivot safely
-    sales_pivot = sales.pivot_table(
-        index="item_code", columns="date", values="qty", aggfunc="sum", fill_value=0
-    ).reset_index()
+    print(sales.head(10))
+    sales_pivot = sales.pivot_table(index='item_code',columns='date',values='qty',aggfunc='sum',fill_value=0).reset_index()
 
     for m in months:
         if m not in sales_pivot.columns:
@@ -219,15 +210,9 @@ def get_data(filters):
 
     sales_pivot = sales_pivot[["item_code"] + months]
 
-    # ✅ Merge all
-    merge_df = (
-        items.merge(pending, how="left", on="item_code")
-             .merge(shipped, how="left", on="item_code")
-             .merge(sales_pivot, how="left", on="item_code")
-             .fillna(0)
-    )
+    merge_df = items.merge(pending, how="left", on="item_code").merge(shipped, how="left", on="item_code").merge(sales_pivot, how="left", on="item_code").fillna(0)
+    
 
-    # Optional: remove dummy record
     merge_df = merge_df[merge_df["item_code"] != "EMPTY"]
 
     return merge_df.to_dict(orient="records")
